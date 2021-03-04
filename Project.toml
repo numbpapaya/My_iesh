@@ -3,6 +3,9 @@ uuid = "dee0e441-d2a0-48bb-92af-52519fe72825"
 authors = ["Belal Raza"]
 version = "0.1.0"
 
+[deps]
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
+
 [compat]
 julia = "1"
 
