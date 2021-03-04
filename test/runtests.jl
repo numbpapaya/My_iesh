@@ -1,10 +1,3 @@
-using My_iesh
-using Test
+using SafeTestsets
 
-
-@testset "My_iesh.jl" begin
-    # Write your tests here.
-    @test f(2, 1) == 7
-    @test f(2, 3) == 13
-    @test f(2, 3) == 1
-end
+@safetestset "My function testing" begin include("testsets.jl") end
