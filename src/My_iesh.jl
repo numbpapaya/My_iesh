@@ -1,13 +1,23 @@
 module My_iesh
-using LinearAlgebra
 
+
+using LinearAlgebra
+using Distances
+using NearestNeighbors
+using PyCall
+
+
+#define parameters
 include("constants.jl")
-# using ForwardDiff
-# # Write your package code here.
-# greet() = print("Hello World")
-#
-# include("extra_file.jl")
-# export f, derivative_of_f
+include("fit_parameters.jl")
+
+#define functions
+include("neighbors.jl") #needs testing!!!!
+#include("matrix_elements.jl")
+
+
+#begin reading data
+include("read_data.jl")
 
 
 end

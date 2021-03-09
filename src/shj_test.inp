@@ -1,0 +1,14 @@
+1       ! NUMTRAJ
+1		! INDTRAJ
+10000000	! THOP
+1		! TWRITE
+0.1		! dt in fs
+Latticex300.dat
+Latticev300.dat
+1.0 0.0	! Etrans, theta in eV
+0.12 0.0 	! Evib, Erot in eV
+300.0		! Tsurf in K
+0		! LATTICEOPT
+1		! potl
+14.003074400 15.994915020 196.9665480 ! atomic masses
+512.064257220     ! KI in kJ/mol
