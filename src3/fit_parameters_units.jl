@@ -2,7 +2,7 @@
 global const A_n = 457000.052788*kjpermol #Au--O: exponential repulsion: A
 global const α_n = 3.75257871821/Å #Au--O: exponential repulsion: alpha
 global const Au_O_cutoff_n= 10.0 * Å #Au--O: cutoff
-global const B_n = 30788.8486039d0*kjpermol #Au--N: exponential repulsion: B
+global const B_n = 30788.8486039*kjpermol #Au--N: exponential repulsion: B
 global const β_n = 2.9728905911/Å #Au--N: exponential repulsion: beta
 global const Au_N_cutoff_n = 10.0  * Å #Au--N: cutoff
 global const F_n = 638.5000000000*kjpermol #N--O: Morse: F
@@ -42,3 +42,32 @@ global const Au_O_coupling_cutoff=10 * Å # Au--O: Exponential decay: cutoff
 global const α = -4.94
 global const β = 17.15
 global const γ = 19.40
+
+function def_d_matrices(α, β, γ)
+    #see paper from 1947 for definitions
+    d17 = [[α 0.0 0.0]; [0.0 β γ]; [0.0 γ β]]
+    d28 = [[α 0.0 0.0]; [0.0 β -γ]; [0.0 -γ β]]
+    d39 = [[β 0.0 γ]; [0.0 α 0.0]; [γ 0.0 β]]
+    d410 = [[β 0.0 -γ]; [0.0 α 0.0]; [-γ 0.0 β]]
+    d511 = [[β γ 0.0]; [γ β 0.0]; [0.0 0.0 α]]
+    d612 = [[β -γ 0.0]; [-γ β 0.0]; [0.0 0.0 α]]
+
+    return d17, d28, d39, d410, d511, d612
+end
+const global d17, d28, d39, d410, d511, d612 = def_d_matrices(α, β, γ)
+
+function compute_d_new_basis(d17, d28, d39, d410, d511, d612)
+    U = permutedims([[-1.0 0.0 1.0]/sqrt(2.0);[1.0 -2.0 1.0]/sqrt(6.0);[-1.0 -1.0 -1.0]/sqrt(3.0)])
+    d1_new = U' * d17
+    d2_new = U' * d28
+    d3_new = U' * d39
+    d4_new = U' * d410
+    d5_new = U' * d511
+    d6_new = U' * d612
+    return d1_new, d2_new, d3_new, d4_new, d5_new, d6_new
+end
+const global d1_new, d2_new, d3_new, d4_new, d5_new, d6_new = compute_d_new_basis(d17, d28, d39, d410, d511, d612)
+
+#set masses
+const global mass_arr0 =  [14.00307440, 15.99491502, 196.966548]
+const global mass_arr =  [14.00307440, 15.99491502, 196.966548]*amu
