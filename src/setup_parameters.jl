@@ -20,13 +20,13 @@ global const N_a = 602214076000000000000000
 global const kb = 1.3806504e-23#0.08617*1e-3 * conv2 * conv3 	# boltzman constant [mev/Kelvin] in simulation units []
 
 #Simulation parameters
-const global Ne = 20     #number of electrons
-const global Ms = 40     #number of orbitals
+const global Ne = 5     #number of electrons
+const global Ms = 10     #number of orbitals
 const global numtraj = 1   #number of trajectories
-const global tsteps = 1000
+const global tsteps = 4000
 const global thop = 1   #number of timesteps between surface hops
 const global twrite = 5     #number of timesteps between data writing
-const global dt = 0.5 * fs  #time stepsize in Femtoseconds
+const global dt = 0.1 * fs  #time stepsize in Femtoseconds
 #these energy parameters are used in subsequent calculations with other variables defined
 # in the simulation units Angstrom, amu, femtoseconds. Therefore we need to convert
 # kilojoule/mole to amu*angstrom^2/femtosecond^2
@@ -125,12 +125,12 @@ end
 global const d17, d28, d39, d410, d511, d612 = def_d_matrices(α, β, γ)
 
 function compute_d_new_basis(d17, d28, d39, d410, d511, d612)
-    d1_new = U_sa' * d17
-    d2_new = U_sa' * d28
-    d3_new = U_sa' * d39
-    d4_new = U_sa' * d410
-    d5_new = U_sa' * d511
-    d6_new = U_sa' * d612
+    d1_new = U_sa' * d17 * U_sa
+    d2_new = U_sa' * (d28* U_sa)
+    d3_new = U_sa' * (d39* U_sa)
+    d4_new = U_sa'* (d410* U_sa)
+    d5_new = U_sa' * (d511* U_sa)
+    d6_new = U_sa' * (d612* U_sa)
     return d1_new, d2_new, d3_new, d4_new, d5_new, d6_new
 end
 const global d1_new, d2_new, d3_new, d4_new, d5_new, d6_new = compute_d_new_basis(d17, d28, d39, d410, d511, d612)
@@ -147,11 +147,11 @@ m_spread_2 = repeat([m_au], inner=[1, 3], outer=[527, 1])
 const global m_spread = vcat(m_spread_1, m_spread_2)
 
 function get_r0()
-    r0_old_basis = 1.0/2*a * permutedims([
-    [0  1  1]; [0 1 -1]; [1 0 1 ]; [-1 0 1 ]; [1 1 0 ]; [1 -1 0];
-    [0 -1 -1]; [0 -1 1 ]; [-1 0 -1]; [1 0 -1 ]; [-1 -1 0 ]; [-1 1 0]
-    ])
-    r0_new_basis = U_sa' * r0_old_basis
+    r0_old_basis = 0.5*a*collect([0,1,1,0,1,-1,1,0,1,-1,0,1 ,1,1,0 ,1,-1,0,0,-1,
+    -1,0,-1,1,-1,0,-1,1, 0,-1,-1,-1,0,-1,1,0])
+    r0_old_basis = reshape(r0_old_basis, (3,12))
+    r0_new_basis = zeros(Float64, 3, 12)
+    mul!(r0_new_basis, transpose(U_sa) ,r0_old_basis)
     return r0_new_basis
 end
 
@@ -163,7 +163,7 @@ function burkey_cantrell()
     vm = zeros(Float64, Ms+1, Ms+1)
     gauss = zeros(Float64, Int(Ms/2), Int(Ms/2))
     for j in 1:(Int(Ms/2)-1)
-        gauss[j, j+1] = Float64(j)/sqrt(4.0*Float64(j)^2 - 1.0)
+        gauss[j, j+1] = Float64(j)/sqrt((2.0*Float64(j) + 1.0)*(2.0*Float64(j) - 1.0))
         gauss[j+1, j] = gauss[j, j+1]
     end
 

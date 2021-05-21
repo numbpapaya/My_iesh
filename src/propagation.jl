@@ -2,7 +2,7 @@ export simulate!
 export propagate_init!
 
 #---------------constructor first time step-------------------------------------
-function propagate_init!(s::Simulation) #check seems okay
+function propagate_init!(s::Simulation) #check seems okay #everything good.
     compute_eigen_H!(s)
     H_derivatives!(s)
     generate_therm_surf!(s)
@@ -45,16 +45,17 @@ end
 end
 
 @inline function compute_eigen_H!(s::Simulation)
-    s.H .= h0 .+ vm .* s.hp[3] ./ sqrt_de
+    s.H .= Symmetric(h0 .+ vm .* s.hp[3] ./ sqrt_de)
     s.H[1, 1] = s.H[1, 1] + s.hp[2] - s.hp[1]
-    s.Γ .= eigvals(s.H)
+    s.λ .= eigvals(s.H)
     s.Γ .= eigvecs(s.H)#check seems okay
+
 end
 
 
 @inbounds @inline function H_derivatives!(s::Simulation) #seems ok, fixed error
     for i in 1:Ms+1
-        @views s.dhdea[:, i] .= s.Γ[1, :] .* s.Γ[1, i]
+        s.dhdea[:, i] .= view(s.Γ, 1, :) .* s.Γ[1, i]
     end
     temp = vm * s.Γ  #needs preallocation
     mul!(s.dhdv, transpose(s.Γ), temp)
@@ -82,7 +83,8 @@ end
 
     for t in 1:Ne
         for k in 1:Ne*(Ms + 1 - Ne)
-            hoprand = rand(Float64, 3)
+            #hoprand = rand(Float64, 3)
+            hoprand = collect([0.2, 0.4, 0.6])
             jp = Int(floor(hoprand[1]*Ne)) + 1
             jh = Int(floor(hoprand[2] * (Ms + 1 - Ne))) + 1
             rtemp = exp(-(s.λ[s.surfh[jh]] - s.dhp_neutral[s.surfp[jp]])) / (kb * tsurf)
@@ -101,7 +103,7 @@ end
 
 @inline @inbounds function update_forces!(s::Simulation) #check seems okay
     for j in 1:Ne
-        @views s.F .= s.F .+ (s.dhdea[s.surfp[j], s.surfp[j]] .* (s.dhp_ion .- s.dhp_neutral) .+
+        s.F .= s.F .+ (s.dhdea[s.surfp[j], s.surfp[j]] .* (s.dhp_ion .- s.dhp_neutral) .+
         s.dhdv[s.surfp[j], s.surfp[j]] .* s.dhp_coup)
 
         # @views s.F .= s.F .+ s.dhdv[s.surfp[j], s.surfp[j]] .* s.dhp_coup
@@ -111,7 +113,7 @@ end
 
 #---------------------simulation main time loop for n=2:tsteps-----------------
 function simulate!(s::Simulation)
-    for n in 2:tsteps
+    for n in 2:2
         mi = n/tsteps * 100.0
         println(string(mi)*"%")
         do_we_stop = v_z_condition_check(s)
@@ -127,7 +129,7 @@ function simulate!(s::Simulation)
 
         # get state corresponding to current surface
         @inbounds for j in 1:Ne
-            @views s.ϕ[:, j] = s.Γ[:, s.surfp[j]]
+            s.ϕ[:, j] = view(s.Γ, :, s.surfp[j])
         end
 
         #Calculate nonadiabatic coupling matrix DM between adiabatic orbitals
@@ -149,6 +151,7 @@ function simulate!(s::Simulation)
         #! Only attempt hop if hoprand < Pbmaxest to avoid expensive calculation
         #! of real hopping elements blk
         if hoprand < s.Pbmaxest[1]
+            print("Hopping, lets go!")
             hopping!(s, hoprand, n)
         end
         # Propagate electronic Hamiltonian
@@ -210,7 +213,7 @@ end
 
     temp_3 = s.dhp_coup .* s.v
     temp_3_sum = sum(temp_3)
-    s.dm .= temp_3_sum .* s.dhdv
+    s.dm .= s.dm .+ temp_3_sum .* s.dhdv
 
     temp_rep1 = repeat(s.λ, 1, Ms+1)
     temp_rep2 = temp_rep1' .- temp_rep1
@@ -237,7 +240,7 @@ end
 
 @inline @inbounds function get_blk2_pbmaxest!(s::Simulation) #should be ok
     rtemp = abs(s.phipsi[1] * s.phipsi[1])
-    if rtemp + 1e-13 > one(eltype(rtemp))
+    if rtemp > one(eltype(rtemp))
         rtemp = 1.0
     end
     for jp in 1:Ne
@@ -245,6 +248,7 @@ end
             s.blk2[jp, jh] = 2.0 * abs(s.phipsi[1] * s.dm[s.surfp[jp], s.surfh[jh]])
         end
     end
+
     s.Pbmaxest[1] = sqrt(sum(s.blk2.^2)) * sqrt(1.0 - rtemp)/s.akk[1] * dt * Float64(thop) #should be ok
 end
 
@@ -376,6 +380,7 @@ end
 @inline function propagate_hamiltonian!(s::Simulation, uu::MVector{Ms+1, ComplexF64},
      uuu::Matrix{ComplexF64}) # seems ok
     s.ψ .= transpose(s.Γ) * s.ψ
+
     uu .= exp.(-1im * s.λ * dt/hbar)
     uuu .= repeat(uu, 1, Ne)
     s.ψ .= uuu .* s.ψ
@@ -389,7 +394,7 @@ end
     s.storage_op[:, n] .= store_temp[:, 1] #psip
 
     rtemp = norm(s.Δ_no)
-    @views s.storage_e[1, n] = 0.5 * (mass_arr[1] + mass_arr[2]) *
+    s.storage_e[1, n] = 0.5 * (mass_arr[1] + mass_arr[2]) *
      sum(((mass_arr[1].*s.v[1, :] + mass_arr[2].*s.v[2, :])/(mass_arr[1] + mass_arr[2])).^2)
     @views T_vib = 0.50 * μ * sum(((s.v[1, :] .- s.v[2, :]).*s.Δ_no/rtemp).^2)
     U_vib = F_n *(1.0 - exp(-δ_n * (rtemp -  r_0_NO)))^2
@@ -424,14 +429,14 @@ end
         @views temp .= abs.(transpose(Γ_hold) * s.Γ[:, j])
         Γmaxloc = argmax(temp)
         temp2 = dot(Γ_hold[:, Γmaxloc], s.Γ[:, j])
-        @views s.Γ[:, j] = s.Γ[:, j]/copysign(1.0, temp2)
+        s.Γ[:, j] = s.Γ[:, j]/copysign(1.0, temp2)
     end
 end
 
 function get_dhdea_dhdv_loop!(s::Simulation)
     s.blk .= 0.0
     @inbounds for j in 1:Ms+1
-        @views s.dhdea[:, j] = s.Γ[1, :] .* s.Γ[1, j]
+        s.dhdea[:, j] = s.Γ[1, :] .* s.Γ[1, j]
     end
     temp = (vm * s.Γ) #ARRAY ALLOCATION !!!! solve later
     mul!(s.dhdv, transpose(s.Γ), temp)

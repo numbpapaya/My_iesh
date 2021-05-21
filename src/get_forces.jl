@@ -28,12 +28,11 @@ function get_F_all_inner!(s::Simulation, F_au, F_au_n_n , F_au_o_n,F_n_o_n_temp 
 )
     #Units are STILL not clear
     F_au .= get_F_au_au(s)
-
     F_au_n_n .= get_F_au_n_neutral(s)
     F_au_o_n .= get_F_au_o_neutral(s)
     F_n_o_n_temp .= get_F_n_o_neutral(s)
     F_n_o_n .= [F_n_o_n_temp; zeros(Float64, N, 3)]
-    F_neutral .= @. F_au_n_n + F_au_o_n + F_n_o_n + F_au #add half force of gold-gold?
+    F_neutral .= @. F_au_n_n + F_au_o_n + F_n_o_n - F_au #add half force of gold-gold?
 
     F_au_n_i .= get_F_au_n_ion(s)
     F_au_o_i.= get_F_au_o_ion(s)
@@ -41,7 +40,7 @@ function get_F_all_inner!(s::Simulation, F_au, F_au_n_n , F_au_o_n,F_n_o_n_temp 
     F_n_o_i .= [F_n_o_i_temp; zeros(Float64, N, 3)]
     F_image_i_temp .= get_F_image_ion(s)
     F_image_i .= [F_image_i_temp; zeros(Float64, N, 3)]
-    F_ion .= @. F_au_n_i + F_au_o_i + F_n_o_i + F_image_i + F_au  #add half force of gold-gold?
+    F_ion .= @. F_au_n_i + F_au_o_i + F_n_o_i + F_image_i - F_au  #add half force of gold-gold?
 
 
     F_au_n_c .= get_F_au_n_coup(s)
@@ -56,8 +55,8 @@ end
 #---------------------------Au-N Coupling----------------------------------
 @inline function get_F_au_n_coup_loop!(x::float_array, F::float_array, i, delta_xn, cutoff_test, bool_cutoff_test)::float_array
     @views delta_xn =  x[i+2, :] - x[1, :]
-    delta_xn[1] = @.delta_xn[1] - cell[1]*dnint(delta_xn[1]/cell[1])
-    delta_xn[2] = @.delta_xn[2] - cell[2]*dnint(delta_xn[2]/cell[2])
+    delta_xn[1] = @.delta_xn[1] - cell[1]*round(delta_xn[1]/cell[1])
+    delta_xn[2] = @.delta_xn[2] - cell[2]*round(delta_xn[2]/cell[2])
 
     cutoff_test .= abs.(delta_xn) .- cutoff
     bool_cutoff_test .= cutoff_test .<= 0.0
@@ -91,8 +90,8 @@ end
 #---------------------------Au-O Coupling----------------------------------
 @inline function get_F_au_o_coup_loop!(x::float_array, F::float_array, i, delta_xo, cutoff_test, bool_cutoff_test)::float_array
     @views delta_xo = x[i+2, :] .- x[2, :]
-    delta_xo[1] = delta_xo[1] - cell[1]*dnint(delta_xo[1]/cell[1])
-    delta_xo[2] = delta_xo[2] - cell[2]*dnint(delta_xo[2]/cell[2])
+    delta_xo[1] = delta_xo[1] - cell[1]*round(delta_xo[1]/cell[1])
+    delta_xo[2] = delta_xo[2] - cell[2]*round(delta_xo[2]/cell[2])
 
     cutoff_test .= abs.(delta_xo) .- cutoff
     bool_cutoff_test .= cutoff_test .<= 0.0
@@ -137,8 +136,8 @@ end
 #---------------------------Ionic Au O ----------------------------------
 @inline function get_F_au_o_ion_loop(x::Array{Float64,2}, F::float_array, i::Int, delta_xo, cutoff_test, bool_cutoff_test)::float_array
     @views delta_xo .=  x[i+2, :] .- x[2, :]
-    delta_xo[1] = delta_xo[1] - cell[1]*dnint(delta_xo[1]/cell[1])
-    delta_xo[2] = delta_xo[2] - cell[2]*dnint(delta_xo[2]/cell[2])
+    delta_xo[1] = delta_xo[1] - cell[1]*round(delta_xo[1]/cell[1])
+    delta_xo[2] = delta_xo[2] - cell[2]*round(delta_xo[2]/cell[2])
 
     cutoff_test .= abs.(delta_xo) .- cutoff
     bool_cutoff_test .= cutoff_test .<= 0.0
@@ -149,14 +148,14 @@ end
             term = -A_n * exp(-α_n*norm_delta_xo) * α_n/norm_delta_xo
             dV_dri = term * delta_xo
             dV_dro = -dV_dri
-            @views F[2, :] .= F[2, :] .- dV_dro
-            @views F[i+2, :] .= F[i+2, :] .- dV_dri
+            F[2, :] .= view(F, 2, :) .- dV_dro
+            F[i+2, :] .= view(F, i+2, :) .- dV_dri
         end
     end
     return F
 end
 
-@inline @inbounds function get_F_au_o_ion(s::Simulation)::float_array
+@inline @inbounds function get_F_au_o_ion(s::Simulation)::float_array #check
     F = zeros(Float64, N+2, 3)
     delta_xo = MVector{3, Float64}(zeros(Float64, 3))
     cutoff_test = MVector{3, Float64}(zeros(Float64, 3))
@@ -168,11 +167,10 @@ end
 end
 
 #---------------------------Ionic Au N ----------------------------------
-@inline @inbounds function get_F_au_n_ion_loop(x::Array{Float64,2}, F::float_array, i::Int, delta_xn, cutoff_test, bool_cutoff_test)::float_array
+@inline @inbounds function get_F_au_n_ion_loop(x::Array{Float64,2}, F::float_array, i::Int, delta_xn, cutoff_test, bool_cutoff_test)::float_array #check
     @views delta_xn .=  x[i+2, :] .- x[1, :]
-    delta_xn[1] = delta_xn[1] - cell[1]*dnint(delta_xn[1]/cell[1])
-    delta_xn[2] = delta_xn[2] - cell[2]*dnint(delta_xn[2]/cell[2])
-
+    delta_xn[1] = delta_xn[1] - cell[1]*round(delta_xn[1]/cell[1])
+    delta_xn[2] = delta_xn[2] - cell[2]*round(delta_xn[2]/cell[2])
     cutoff_test .=  abs.(delta_xn) .- cutoff
     bool_cutoff_test .=  cutoff_test .<= 0.0
     sum_bool = sum(bool_cutoff_test)
@@ -181,11 +179,11 @@ end
         if norm_delta_xn <= cutoff
             norm_r_no = norm(s.Δ_no)
             r_diff = norm_delta_xn - rN_sur_e_i
-            term1 = s.Δ_no[3]
+            term1 = s.x[2, 3] - s.x[1, 3]
             term2 = exp(-β_i*r_diff)
             term3 = exp(-2.0 * β_i * r_diff)
             term4 = norm_r_no^4
-
+            #println(term2)
             dV_xN_1 = 4.0*term2*(s.Δ_no[1])*term1^2
             dV_xN_1 = dV_xN_1/term4
             dV_xN_4 = 2.0*term3*delta_xn[1]*β_i
@@ -259,7 +257,7 @@ end
             dVc_yN_1 = dVc_yN_1/term4
             dVc_yN = B_i*(dVc_yN_1)
 
-            dVc_zN_1 = 4.0*term2*(s.Δ_no[3])*term1*term1
+            dVc_zN_1 = 4.0*term2*(s.x[1, 3] - s.x[2, 3])*term1*term1
             dVc_zN_1 = dVc_zN_1/term4
             dVc_zN_2 = 4.0*term2*term1
             dVc_zN_2 = dVc_zN_2/(norm_r_no*norm_r_no)
@@ -282,18 +280,17 @@ end
             dVc_xi = 0.0
             dVc_yi = 0.0
             dVc_zi = 0.0
+            F[1, 1] = F[1, 1] - dV_xN + dVc_xN
+            F[1, 2] = F[1, 2] - dV_yN + dVc_yN
+            F[1, 3] = F[1, 3] - dV_zN + dVc_zN
 
-            @views F[1, 1] = F[1, 1] - dV_xN + dVc_xN
-            @views F[1, 2] = F[1, 2] - dV_yN + dVc_yN
-            @views F[1, 3] = F[1, 3] - dV_zN + dVc_zN
+            F[2, 1] = F[2, 1] - dV_xO + dVc_xO
+            F[2, 2] = F[2, 2] - dV_yO + dVc_yO
+            F[2, 3] = F[2, 3] - dV_zO + dVc_zO
 
-            @views F[2, 1] = F[2, 1] - dV_xO + dVc_xO
-            @views F[2, 2] = F[2, 2] - dV_yO + dVc_yO
-            @views F[2, 3] = F[2, 3] - dV_zO + dVc_zO
-
-            @views F[i+2, 1] = F[i+2, 1] - dV_xi + dVc_xi
-            @views F[i+2, 2] = F[i+2, 2] - dV_yi + dVc_yi
-            @views F[i+2, 3] = F[i+2, 3] - dV_zi + dVc_zi
+            F[i+2, 1] = F[i+2, 1] - dV_xi + dVc_xi
+            F[i+2, 2] = F[i+2, 2] - dV_yi + dVc_yi
+            F[i+2, 3] = F[i+2, 3] - dV_zi + dVc_zi
         end
     end
     return F
@@ -309,13 +306,16 @@ end
     end
     return F
 end
+
+
+
 #---------------------------Ionic Image Potential----------------------------------
-function get_F_image_ion(s::Simulation)::MMatrix{2, 3, Float64, 6}
+function get_F_image_ion(s::Simulation)::MMatrix{2, 3, Float64, 6}  #check
     F = MMatrix{2, 3, Float64, 6}(zeros(2, 3))
     @views zcom = zcom_NO(s.x[1:2, :])
     term = (D_i*(zcom - z0_i))/(C_i^2 + (zcom-z0_i)^2)^(1.5)
-    @views F[1, 3] = term * mass_arr[1]/(mass_arr[1] + mass_arr[2])
-    @views F[2, 3] = term * mass_arr[2]/(mass_arr[1] + mass_arr[2])
+    F[1, 3] = term * mass_arr[1]/(mass_arr[1] + mass_arr[2])
+    F[2, 3] = term * mass_arr[2]/(mass_arr[1] + mass_arr[2])
     return -F
 end
 #---------------------------Ionic N-O----------------------------------
@@ -333,16 +333,18 @@ end
 @inline @inbounds function get_F_n_o_neutral(s::Simulation)::MMatrix{2, 3, Float64, 6}
     F = MMatrix{2, 3, Float64, 6}(undef)
     norm_r_no = norm(s.Δ_no)
-    term = 2*F_n*δ_n*exp(-δ_n*(norm_r_no - r_0_NO))*(1-exp(-δ_n*(norm_r_no - r_0_NO)))
-    @views F[1, :] .= term/norm_r_no .* s.Δ_no
-    @views F[2, :] .= -F[1, :]
-    return -F
+    rdiff = norm_r_no - r_0_NO
+    term = 2*F_n*δ_n*(exp(-2.0*δ_n * rdiff) - exp(-δ_n * rdiff))
+    F[1, 1] = -term * (s.x[2, 1] - s.x[1, 1]) / norm_r_no
+    F[1, :] .= -term/norm_r_no .* s.Δ_no
+    F[2, :] .= -F[1, :]
+    return F
 end
 #---------------------------Neutral AU_O----------------------------------
 @inline function get_F_au_o_neutral_loop(x::float_array, i::Int, F::float_array, delta_xo, cutoff_test, bool_cutoff_test)::float_array
     @views delta_xo .= x[i+2, :] .- x[2, :]
-    delta_xo[1] = delta_xo[1] - cell[1]*dnint(delta_xo[1]/cell[1])
-    delta_xo[2] = delta_xo[2] - cell[2]*dnint(delta_xo[2]/cell[2])
+    delta_xo[1] = delta_xo[1] - cell[1]*round(delta_xo[1]/cell[1])
+    delta_xo[2] = delta_xo[2] - cell[2]*round(delta_xo[2]/cell[2])
 
     cutoff_test .= abs.(delta_xo) .- cutoff
     bool_cutoff_test .= cutoff_test .<= 0.0
@@ -354,8 +356,8 @@ end
             dV_dxi = term * delta_xo
             dV_dxo = -dV_dxi
 
-            @views F[2,:] .= F[2,:] .- dV_dxo
-            @views F[i+2,:] .= F[i+2,:] .- dV_dxi
+            F[2,:] .= view(F, 2, :) .- dV_dxo
+            F[i+2,:] .= view(F, i+2, :) .- dV_dxi
         end
     end
     return F
@@ -374,10 +376,10 @@ end
 
 #---------------------------Neutral AU_N----------------------------------
 
-@inline function get_F_au_n_neutral_loop(x::Array{Float64,2}, i::Int, F::float_array, delta_xn, cutoff_test, bool_cutoff_test)::float_array
+@inline function get_F_au_n_neutral_loop(x::Array{Float64,2}, i::Int, F::float_array, delta_xn, cutoff_test, bool_cutoff_test)::float_array #maybe check
     @views delta_xn .=  x[i+2, :] .- x[1, :]
-    delta_xn[1] = delta_xn[1] - cell[1]*dnint(delta_xn[1]/cell[1])
-    delta_xn[2] = delta_xn[2] - cell[2]*dnint(delta_xn[2]/cell[2])
+    delta_xn[1] = delta_xn[1] - cell[1]*round(delta_xn[1]/cell[1])
+    delta_xn[2] = delta_xn[2] - cell[2]*round(delta_xn[2]/cell[2])
 
     cutoff_test .= abs.(delta_xn) .- cutoff
     bool_cutoff_test .=  cutoff_test .<= 0.0
@@ -389,14 +391,14 @@ end
             dV_dxi =  term * delta_xn
             dV_dxN = -dV_dxi
 
-            F[1,:] .= F[1,:] .+ dV_dxN
-            F[i+2,:] .= F[i+2,:] .+ dV_dxi
+            F[1,:] .= view(F, 1, :) .- dV_dxN
+            F[i+2,:] .= view(F, i+2, :) .- dV_dxi
         end
     end
     return F
 end
 
-@inbounds @inline function get_F_au_n_neutral(s::Simulation)::float_array
+@inbounds @inline function get_F_au_n_neutral(s::Simulation)::float_array #check
     F = zeros(Float64, N+2, 3)
     delta_xn = MVector{3, Float64}(zeros(Float64, 3))
     cutoff_test = MVector{3, Float64}(zeros(Float64, 3))
@@ -404,11 +406,11 @@ end
     for i in 1:N
         F = get_F_au_n_neutral_loop(s.x, i, F, delta_xn, cutoff_test, bool_cutoff_test)
     end
-    return -F
+    return F
 end
 
 #---------------------------GOLD AU AU LATTICE----------------------------------
-@inline function F_au_au_loop_if(x::float_array, F::float_array, i::Int, j::Int, xm, xi, temp,r, qf_1, qf_2)::float_array
+@inline function F_au_au_loop_if(x::float_array, F::float_array, i::Int, j::Int, xm, xi, temp,r, qf_1)::float_array
     if s.nn_arr[i, j] != 0
         m = s.nn_arr[i, j] + 2
         @views xm .= x[m, :]
@@ -418,43 +420,36 @@ end
         temp .= temp .- floor.(temp .+ 0.5)
         @views r .=  temp .* cell .- r0[:, j]
         if j == 1 || j== 7
-            qf_2 .= d1_new .+ transpose(d1_new)
-            mul!(qf_1, qf_2, r)
-            F[i+2, :] .= view(F, i+2, :) .- 0.5*qf_1
+            mul!(qf_1, d1_new, r)
+            F[i+2, :] .= view(F, i+2, :) .- qf_1
         elseif j == 2 || j== 8
-            qf_2 .= d2_new .+ transpose(d2_new)
-            mul!(qf_1, qf_2, r)
-            F[i+2, :] .= view(F, i+2, :) .- 0.5*qf_1
+            mul!(qf_1, d2_new, r)
+            F[i+2, :] .= view(F, i+2, :) .- qf_1
         elseif j == 3 || j== 9
-            qf_2 .= d3_new .+ transpose(d3_new)
-            mul!(qf_1, qf_2, r)
-            F[i+2, :] .= view(F, i+2, :) .- 0.5*qf_1
+            mul!(qf_1, d3_new, r)
+            F[i+2, :] .= view(F, i+2, :) .- qf_1
         elseif j == 4 || j== 10
-            qf_2 .= d4_new .+ transpose(d4_new)
-            mul!(qf_1, qf_2, r)
-            F[i+2, :] .= view(F, i+2, :) .- 0.5*qf_1
+            mul!(qf_1, d4_new, r)
+            F[i+2, :] .= view(F, i+2, :) .- qf_1
         elseif j == 5|| j== 11
-            qf_2 .= d5_new .+ transpose(d5_new)
-            mul!(qf_1, qf_2, r)
-            F[i+2, :] .= view(F, i+2, :) .- 0.5*qf_1
+            mul!(qf_1, d5_new, r)
+            F[i+2, :] .= view(F, i+2, :) .- qf_1
         elseif j == 6 || j== 12
-            qf_2 .= d6_new .+ transpose(d6_new)
-            mul!(qf_1, qf_2, r)
-            F[i+2, :] .=  view(F, i+2, :) .- 0.5*qf_1
+            mul!(qf_1, d6_new, r)
+            F[i+2, :] .= view(F, i+2, :) .- qf_1
         end
     end
     return F
 end
-@inline @inbounds function F_au_au_loop(x::float_array, F::float_array)::float_array
+@inline @inbounds function F_au_au_loop(x::float_array, F::float_array)::float_array #check
     xm = MVector{3, Float64}(zeros(Float64, 3))
     xi = MVector{3, Float64}(zeros(Float64, 3))
     temp = MVector{3, Float64}(zeros(Float64, 3))
     r = MVector{3, Float64}(zeros(Float64, 3))
     qf_1 = MVector{3, Float64}(zeros(Float64, 3))
-    qf_2 = MMatrix{3, 3, Float64, 9}(zeros(Float64, 3, 3))
     for i in 1:N
         for j in 1:12
-            F .= F_au_au_loop_if(x, F, i, j, xm, xi, temp,r, qf_1, qf_2)
+            F .= F_au_au_loop_if(x, F, i, j, xm, xi, temp,r, qf_1)
         end
     end
     return F

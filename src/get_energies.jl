@@ -13,7 +13,7 @@ end
 
 #---------------------------Coupling----------------------------------
 
-function get_E_coup(s::Simulation)::Float64
+function get_E_coup(s::Simulation)::Float64 #check
     E_au_n_coup = get_E_au_n_coup(s)
     E_au_o_coup = get_E_au_o_coup(s)
     return E_au_n_coup + E_au_o_coup
@@ -22,8 +22,8 @@ end
 #---------------------------Au-N Coupling----------------------------------
 @inline function get_E_au_n_coup_loop!(x, V, i, delta_xn, cutoff_test, bool_cutoff_test)::Float64
     @views delta_xn =  x[i+2, :] - x[1, :]
-    delta_xn[1] = @.delta_xn[1] - cell[1]*dnint(delta_xn[1]/cell[1])
-    delta_xn[2] = @.delta_xn[2] - cell[2]*dnint(delta_xn[2]/cell[2])
+    delta_xn[1] = @.delta_xn[1] - cell[1]*round(delta_xn[1]/cell[1])
+    delta_xn[2] = @.delta_xn[2] - cell[2]*round(delta_xn[2]/cell[2])
 
     cutoff_test .= abs.(delta_xn) .- cutoff
     bool_cutoff_test .= cutoff_test .<= 0.0
@@ -52,8 +52,8 @@ end
 #---------------------------Au-O Coupling----------------------------------
 @inline function get_E_au_o_coup_loop!(x, V, i, delta_xo, cutoff_test, bool_cutoff_test)::Float64
     @views delta_xo = x[i+2, :] .- x[2, :]
-    delta_xo[1] = delta_xo[1] - cell[1]*dnint(delta_xo[1]/cell[1])
-    delta_xo[2] = delta_xo[2] - cell[2]*dnint(delta_xo[2]/cell[2])
+    delta_xo[1] = delta_xo[1] - cell[1]*round(delta_xo[1]/cell[1])
+    delta_xo[2] = delta_xo[2] - cell[2]*round(delta_xo[2]/cell[2])
 
     cutoff_test .= abs.(delta_xo) .- cutoff
     bool_cutoff_test .= cutoff_test .<= 0.0
@@ -81,7 +81,7 @@ end
 end
 #---------------------------Ionic----------------------------------
 
-function get_E_ion(s::Simulation)::Float64
+function get_E_ion(s::Simulation)::Float64  #check
     E_n_o_ion= get_E_n_o_ion(s)
     E_au_n_ion = get_E_au_n_ion(s)
     E_au_o_ion = get_E_au_o_ion(s)
@@ -99,8 +99,8 @@ end
 #---------------------------Ionic Au O ----------------------------------
 @inline function get_E_au_o_ion_loop(x::Array{Float64,2}, V::Float64, i::Int, delta_xo, cutoff_test, bool_cutoff_test)::Float64
     @views delta_xo .=  x[i+2, :] .- x[2, :]
-    delta_xo[1] = delta_xo[1] - cell[1]*dnint(delta_xo[1]/cell[1])
-    delta_xo[2] = delta_xo[2] - cell[2]*dnint(delta_xo[2]/cell[2])
+    delta_xo[1] = delta_xo[1] - cell[1]*round(delta_xo[1]/cell[1])
+    delta_xo[2] = delta_xo[2] - cell[2]*round(delta_xo[2]/cell[2])
 
     cutoff_test .= abs.(delta_xo) .- cutoff
     bool_cutoff_test .= cutoff_test .<= 0.0
@@ -132,8 +132,8 @@ end
 #---------------------------Ionic Au N ----------------------------------
 @inline @inbounds function get_E_au_n_ion_loop(x::Array{Float64,2}, V::Float64, i::Int, delta_xn, cutoff_test, bool_cutoff_test)::Float64
     @views delta_xn .=  x[i+2, :] .- x[1, :]
-    delta_xn[1] = delta_xn[1] - cell[1]*dnint(delta_xn[1]/cell[1])
-    delta_xn[2] = delta_xn[2] - cell[2]*dnint(delta_xn[2]/cell[2])
+    delta_xn[1] = delta_xn[1] - cell[1]*round(delta_xn[1]/cell[1])
+    delta_xn[2] = delta_xn[2] - cell[2]*round(delta_xn[2]/cell[2])
 
     cutoff_test .=  abs.(delta_xn) .- cutoff
     bool_cutoff_test .=  cutoff_test .<= 0.0
@@ -179,7 +179,7 @@ end
 end
 #---------------------------Neutral----------------------------------
 
-@inline function get_E_neutral(s::Simulation)::Float64
+@inline function get_E_neutral(s::Simulation)::Float64  #check
     E_n_o_neutral = get_E_n_o_neutral(s)
     E_au_n_neutral = get_E_au_n_neutral(s)
     E_au_o_neutral = get_E_au_o_neutral(s)
@@ -189,19 +189,18 @@ end
 
 #---------------------------Neutral N-O----------------------------------
 
-@inline function get_E_n_o_neutral(s::Simulation)::Float64
-    @views r_no =  s.x[1, :] .- s.x[2, :]
-    norm_r_no = norm(r_no)
+@inline function get_E_n_o_neutral(s::Simulation)::Float64 #its good
+    norm_r_no = norm(s.Δ_no)
     return F_n * (1 - exp(-δ_n*(norm_r_no - r_0_NO)))^2
 end
 
 
 
 #---------------------------Neutral AU_O----------------------------------
-@inline function get_E_au_o_neutral_loop!(x, i, V, delta_xn, cutoff_test, bool_cutoff_test)::Float64
+@inline function get_E_au_o_neutral_loop!(x, i, V, delta_xn, cutoff_test, bool_cutoff_test)::Float64 #i think its ok, small numerical instability
     @views delta_xn .= x[i+2, :] .- x[2, :]
-    delta_xn[1] = delta_xn[1] - cell[1]*dnint(delta_xn[1]/cell[1])
-    delta_xn[2] = delta_xn[2] - cell[2]*dnint(delta_xn[2]/cell[2])
+    delta_xn[1] = delta_xn[1] - cell[1]*round(delta_xn[1]/cell[1])
+    delta_xn[2] = delta_xn[2] - cell[2]*round(delta_xn[2]/cell[2])
 
     cutoff_test .= abs.(delta_xn) .- cutoff
     bool_cutoff_test .= cutoff_test .<= 0.0
@@ -217,9 +216,9 @@ end
 
 @inbounds @inline function get_E_au_o_neutral(s::Simulation)::Float64
     V = 0.0
-    delta_xn = Vector{Float64}(undef, 3)
-    cutoff_test = Vector{Float64}(undef, 3)
-    bool_cutoff_test = BitArray{1}(undef, 3)
+    delta_xn = zeros(Float64, 3)
+    cutoff_test = zeros(Float64, 3)
+    bool_cutoff_test = zeros(Bool, 3)
     for i in 1:N
         V = get_E_au_o_neutral_loop!(s.x, i, V, delta_xn, cutoff_test, bool_cutoff_test)
     end
@@ -229,8 +228,8 @@ end
 
 @inline function get_E_au_n_neutral_loop(x::Array{Float64,2}, i::Int, V::Float64, delta_xn, cutoff_test, bool_cutoff_test)::Float64
     @views delta_xn .=  x[i+2, :] .- x[1, :]
-    delta_xn[1] = delta_xn[1] - cell[1]*dnint(delta_xn[1]/cell[1])
-    delta_xn[2] = delta_xn[2] - cell[2]*dnint(delta_xn[2]/cell[2])
+    delta_xn[1] = delta_xn[1] - cell[1]*round(delta_xn[1]/cell[1])
+    delta_xn[2] = delta_xn[2] - cell[2]*round(delta_xn[2]/cell[2])
 
     cutoff_test .= abs.(delta_xn) .- cutoff
     bool_cutoff_test .=  cutoff_test .<= 0.0
@@ -294,12 +293,12 @@ end
     return V
 end
 @inline @inbounds function V_au_au_loop(x::float_array, V::Float64)::Float64
-    xm = Vector{Float64}(undef, 3)
-    xi = Vector{Float64}(undef, 3)
-    temp = Vector{Float64}(undef, 3)
-    r = Vector{Float64}(undef, 3)
+    xm = zeros(Float64, 3)
+    xi = zeros(Float64, 3)
+    temp = zeros(Float64, 3)
+    r = zeros(Float64, 3)
     qf_1 = 0.0
-    qf_2 = Vector{Float64}(undef, 3)
+    qf_2 = zeros(Float64, 3)
     for i in 1:N
         for j in 1:12
             V = V_au_au_loop_if(x, V, i, j, xm, xi, temp,r, qf_1, qf_2)
@@ -308,7 +307,7 @@ end
     return V
 end
 
-@inline function get_V_au_au(s::Simulation)::Float64
+@inline function get_V_au_au(s::Simulation)::Float64    #check
     V = 0.0
     V = V_au_au_loop(s.x, V)
     return V/4.0

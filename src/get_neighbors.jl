@@ -38,8 +38,7 @@ end
             temp_vec .= temp_vec .- floor.(temp_vec .+ 1.0/2)
             r .= temp_vec .* cell
             r_dot = norm(r)
-            rmi = floor(r_dot*10000.0)/10000.0
-            if rmi <= (g*1.01)
+            if r_dot <= (g*1.01)
                 nn_loop_if!(r,  nn_arr,   i,  j, rb, s)
             end
         end
@@ -48,11 +47,11 @@ end
 
 
 @inline function nn_lattice!(s::Simulation)
-    temp_vec = Vector{Float64}(undef, 3)
-    r = Vector{Float64}(undef, 3)
+    temp_vec = zeros(Float64, 3)
+    r = zeros(Float64, 3)
     rmi = 0.0
-    rb = Vector{Float64}(undef, 3)
-    ss = Vector{Float64}(undef, 3)
+    rb = zeros(Float64, 3)
+    ss = zeros(Float64, 3)
     nn_arr = nn_loop!(s.x, s.nn_arr, temp_vec, r, rmi, rb, ss)
 
 end

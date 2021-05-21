@@ -1,10 +1,11 @@
 module My_iesh
 
 using LinearAlgebra
-using Distances
 using Random
 using StaticArrays
 using Plots
+
+
 include("read_au_data.jl")
 include("setup_parameters.jl")
 include("types.jl")
