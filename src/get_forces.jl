@@ -335,8 +335,8 @@ end
     norm_r_no = norm(s.Δ_no)
     rdiff = norm_r_no - r_0_NO
     term = 2*F_n*δ_n*(exp(-2.0*δ_n * rdiff) - exp(-δ_n * rdiff))
-    F[1, 1] = -term * (s.x[2, 1] - s.x[1, 1]) / norm_r_no
-    F[1, :] .= -term/norm_r_no .* s.Δ_no
+    #F[1, 1] = -term * (s.x[2, 1] - s.x[1, 1]) / norm_r_no
+    F[1, :] .= term/norm_r_no .* s.Δ_no
     F[2, :] .= -F[1, :]
     return F
 end

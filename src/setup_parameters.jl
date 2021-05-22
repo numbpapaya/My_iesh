@@ -20,10 +20,10 @@ global const N_a = 602214076000000000000000
 global const kb = 1.3806504e-23#0.08617*1e-3 * conv2 * conv3 	# boltzman constant [mev/Kelvin] in simulation units []
 
 #Simulation parameters
-const global Ne = 5     #number of electrons
-const global Ms = 10     #number of orbitals
+const global Ne = 20     #number of electrons
+const global Ms = 40    #number of orbitals
 const global numtraj = 1   #number of trajectories
-const global tsteps = 4000
+const global tsteps = 100000
 const global thop = 1   #number of timesteps between surface hops
 const global twrite = 5     #number of timesteps between data writing
 const global dt = 0.1 * fs  #time stepsize in Femtoseconds

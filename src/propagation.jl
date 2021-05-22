@@ -83,8 +83,8 @@ end
 
     for t in 1:Ne
         for k in 1:Ne*(Ms + 1 - Ne)
-            #hoprand = rand(Float64, 3)
-            hoprand = collect([0.2, 0.4, 0.6])
+            hoprand = rand(Float64, 3)
+            #hoprand = collect([0.2, 0.4, 0.6])
             jp = Int(floor(hoprand[1]*Ne)) + 1
             jh = Int(floor(hoprand[2] * (Ms + 1 - Ne))) + 1
             rtemp = exp(-(s.λ[s.surfh[jh]] - s.dhp_neutral[s.surfp[jp]])) / (kb * tsurf)
@@ -113,9 +113,7 @@ end
 
 #---------------------simulation main time loop for n=2:tsteps-----------------
 function simulate!(s::Simulation)
-    for n in 2:2
-        mi = n/tsteps * 100.0
-        println(string(mi)*"%")
+    for n in 2:tsteps
         do_we_stop = v_z_condition_check(s)
         if do_we_stop == -1
             break
@@ -126,7 +124,11 @@ function simulate!(s::Simulation)
             s.trajzmin .= min_z_no
             s.trajtheta .= acos(s.Δ_no[3]/norm(s.Δ_no))
         end
-
+        t_prog = round(n/tsteps * 100.0; digits=3)
+        str_t_prog = string(t_prog)*"%"
+        traj_prog = round(min_z_no/Å; digits=3)
+        str_trajzmin_prog = string(traj_prog)
+        println(str_t_prog*", "*str_trajzmin_prog)
         # get state corresponding to current surface
         @inbounds for j in 1:Ne
             s.ϕ[:, j] = view(s.Γ, :, s.surfp[j])
