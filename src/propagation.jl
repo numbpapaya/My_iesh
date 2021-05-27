@@ -153,7 +153,6 @@ function simulate!(s::Simulation)
         #! Only attempt hop if hoprand < Pbmaxest to avoid expensive calculation
         #! of real hopping elements blk
         if hoprand < s.Pbmaxest[1]
-            print("Hopping, lets go!")
             hopping!(s, hoprand, n)
         end
         # Propagate electronic Hamiltonian
@@ -267,6 +266,7 @@ function hopping!_pbmaxest!(s::Simulation, hoprand::Float64, n::Int64)
     s.storage_phop[n] = s.Pb[Ne*(Ms+1-Ne)]
     #attempt hop conditioned on random number
     if hoprand < s.Pb[Ne*(Ms+1-Ne)]
+        print("Hopping! ")
         hopping!_pbmaxest!_attempt!(s, hoprand)
     end
 end

@@ -97,7 +97,7 @@ function simulation_constructor_x_v!(s::Simulation)
     v0no[1, :] = @. v0no[1, :] + vvib_no * vrot_no * sqrt(mass_arr[2]/mass_arr[1])
     v0no[2, :] = @. v0no[2, :] - vvib_no * vrot_no * sqrt(mass_arr[1]/mass_arr[2])
     #stack information to x_au0 and v_au0
-    v0 = [v0no; v_au0.*0.0]
+    v0 = [v0no; v_au0]
     x0 = [x0no; x_au0]
     s.x .= x0
     s.v .= v0

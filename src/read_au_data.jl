@@ -2,7 +2,8 @@
 
 #read velocity file
 #filename = "C:\\Users\\Belal\\.julia\\dev\\My_iesh.jl\\data\\surface_Au111.dat"
-filename = "/home/razamaza/dev/My_iesh.jl/data/surface_Au111.dat"
+#filename = "/home/razamaza/dev/My_iesh.jl/data/surface_Au111.dat"
+filename = "C:\\Users\\braza2\\Documents\\GitHub\\My_iesh.jl\\data\\surface_Au111.dat"
 f = open(filename)
 data = readlines(f)
 close(f)
@@ -29,7 +30,8 @@ const global x_au0 = copy(x_au_temp)*Å
 
 
 #filename = "C:\\Users\\Belal\\.julia\\dev\\My_iesh.jl\\data\\gold_velocities.dat" #units in meter per second
-filename = "/home/razamaza/dev/My_iesh.jl/data/gold_velocities.dat"
+#filename = "/home/razamaza/dev/My_iesh.jl/data/gold_velocities.dat"
+filename ="C:\\Users\\braza2\\Documents\\GitHub\\My_iesh.jl\\data\\gold_velocities.dat"
 f = open(filename)
 data = readlines(f)
 close(f)
@@ -44,4 +46,4 @@ for i in 1:length(data)
     v_au_temp[i, :] = str_to_float
 end
 #x_no_temp = vcat(x_no, x_temp)
-const global v_au0 = copy(v_au_temp)#*1e-5 #convert to angstrom/femtosecond
+const global v_au0 = copy(v_au_temp)
