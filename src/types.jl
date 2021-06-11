@@ -42,6 +42,15 @@ struct Simulation{A, C, D}
     vdot::Array{Float64, 2}
     vtemp::Array{Float64, 2}
     vscale::MVector{1, Float64}
+    storage_K::Array{Float64, 1}
+    storage_P::Array{Float64, 1}
+    storage_state::Array{Float64, 1}
+    storage_deltaKNO::Array{Float64, 1}
+    storage_deltaKAu::Array{Float64, 1}
+    storage_hoptimes::Array{Int64, 1}
+    exnum::MVector{1, Int64}
+    attnum::MVector{1, Int64}
+    nf::MVector{1, Int64}
 end
 
 

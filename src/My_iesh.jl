@@ -1,27 +1,27 @@
 module My_iesh
 
+
+curr_vers = "v.0.8"
 using LinearAlgebra
 using Random
 using StaticArrays
 using Plots
+using HDF5
+using Statistics
+using Dates
+
+include("read_au_data.jl");
+include("setup_parameters.jl");
+include("types.jl");
+include("misc_func.jl");
+include("constructor.jl");
+include("get_neighbors.jl");
+include("get_energies.jl");
+include("get_forces.jl");
+include("propagation.jl");
+include("run_trajectory.jl");
 
 
-include("read_au_data.jl")
-include("setup_parameters.jl")
-include("types.jl")
-include("misc_func.jl")
-include("constructor.jl")
-include("get_neighbors.jl")
-include("get_energies.jl")
-include("get_forces.jl")
-include("propagation.jl")
+multiple_trajectory()
 
-
-s = simulation_init();
-simulation_constructor_x_v!(s);
-simulation_constructor_nn!(s);
-simulation_constructor_energy(s);
-simulation_constructor_force(s);
-propagate_init!(s);
-simulate!(s);
 end

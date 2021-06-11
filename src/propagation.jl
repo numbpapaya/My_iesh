@@ -21,12 +21,17 @@ function propagate_init!(s::Simulation) #check seems okay #everything good.
 
     #convert to Forces
     s.F .= -s.F
-    storage_init!(s)
+    if logopt == 1
+        storage_init!(s)
+    end
 end
 
 
 #stores data from initialization into first columns of storage arrays
 @inline function storage_init!(s::Simulation)
+    get_temperature!(s, 1)
+    s.storage_K[1] = 0.5 * sum(s.v.^2 .* m_spread)
+    s.storage_P[1] = s.hp[1] + sum(s.λ[s.surfp])
     rtemp = norm(s.Δ_no)
     @views s.storage_e[1, 1] = 0.5 * (mass_arr[1] + mass_arr[2]) *
      sum(((mass_arr[1].*s.v[1, :] + mass_arr[2].*s.v[2, :])/(mass_arr[1] + mass_arr[2])).^2)
@@ -37,7 +42,6 @@ end
     @views T_tot = 0.5 * mass_arr[1] * sum(s.v[1, :].^2) + 0.5*mass_arr[2]*sum(s.v[2, :].^2)
     @views s.storage_e[3, 1] = T_tot - T_vib - s.storage_e[1, 1]
     s.storage_e[4, 1] = sum(s.λ[s.surfp]) - sum(s.λ[s.surfpinit])       #das hier macht keinen Sinn
-
     @views s.storage_xno[1:3, 1] = s.x[1, :]
     @views s.storage_xno[4:6, 1] = s.x[2, :]
     @views s.storage_vno[1:3, 1] = s.v[1, :]
@@ -160,7 +164,9 @@ function simulate!(s::Simulation)
         uuu = zeros(ComplexF64, Ms+1, Ne)
         propagate_hamiltonian!(s, uu, uuu)
         #storage
-        storage_sim1!(s, n)
+        if logopt == 1
+            storage_sim1!(s, n)
+        end
         #propagate nuclear motion
         propagate_nuclear!(s)
         #get adiabatic eigenvalues, eigenvectors
@@ -177,11 +183,16 @@ function simulate!(s::Simulation)
         s.F .= -s.F
 
         s.v .= s.vtemp .+ 0.5 ./m_spread .* s.F * dt
-        @views s.storage_xno[1:3, n] .= s.x[1, :]
-        @views s.storage_xno[4:6, n] .= s.x[2, :]
-        @views s.storage_vno[1:3, n] .= s.v[1, :]
-        @views s.storage_vno[4:6, n] .= s.v[2, :]
+        if logopt == 1
+            @views s.storage_xno[1:3, 1] = s.x[1, :]
+            @views s.storage_xno[4:6, 1] = s.x[2, :]
+            @views s.storage_vno[1:3, 1] = s.v[1, :]
+            @views s.storage_vno[4:6, 1] = s.v[2, :]#check seems okay
+        end
+        s.nf .= s.nf .+ one(Int64)
     end
+    s.storage_e[5, :] = sum(s.storage_e[1:4, :], dims=1) .- sum(s.storage_e[1:4, 1])
+
 end
 #-------------------------------------------------------------------------------
 
@@ -267,7 +278,7 @@ function hopping!_pbmaxest!(s::Simulation, hoprand::Float64, n::Int64)
     #attempt hop conditioned on random number
     if hoprand < s.Pb[Ne*(Ms+1-Ne)]
         print("Hopping! ")
-        hopping!_pbmaxest!_attempt!(s, hoprand)
+        hopping!_pbmaxest!_attempt!(s, hoprand, n)
     end
 end
 
@@ -306,17 +317,17 @@ end
     s.Pb .= s.Pb ./ s.akk[1] * dt * Float64(thop)
 end
 #-----------------start hopping! hoprand < pbmaxest && hoprand < Pbmax ---------
-function hopping!_pbmaxest!_attempt!(s::Simulation, hoprand::Float64)
+function hopping!_pbmaxest!_attempt!(s::Simulation, hoprand::Float64, n::Int64)
     hopstate = which_state(s, hoprand) #ok
     jh= which_orbital_jh(hopstate) #ok
     jp= which_orbital_jp(hopstate) #ok
     rhop = which_direction(s, jp, jh) #needs durther testing, not sure about rescaling
     e_el_old, e_el_new, k_rhop, k_temp = check_energy1(s, jp, jh, rhop)
     bool_e = check_energy2(e_el_old, e_el_new, k_rhop, k_temp)
-    # s.attnum[1] = s.attnum[1] + one(Int64)
+    s.attnum .= s.attnum .+ one(Int64)
 
     if bool_e == true
-        update_vel_populations!(s, jp, jh, rhop, k_temp, k_rhop, e_el_old, e_el_new) #needs more storage
+        update_vel_populations!(s, jp, jh, rhop, k_temp, k_rhop, e_el_old, e_el_new, n) #needs more storage
     end
 end
 
@@ -366,13 +377,19 @@ end
 end
 
 @inline function update_vel_populations!(s::Simulation, jp::Int64, jh::Int64, rhop::float_array,
-    k_temp::Float64, k_rhop::Float64, e_el_old::Float64, e_el_new::Float64)
+    k_temp::Float64, k_rhop::Float64, e_el_old::Float64, e_el_new::Float64, n::Int64)
     rtemp = s.vscale[1]
     s.vscale[1] = (k_temp - sqrt(k_temp^2 - 4.0 * k_rhop * (e_el_new - e_el_old)))/2.0/k_rhop
-    @views k_no = 0.50 * sum(m_spread[1:2, :].* s.v[1:2, :].^2)
-    @views k_au = 0.50 * sum(m_spread[3:end, :].* s.v[3:end, :].^2)
+    @views k_no = 0.50 * sum(view(m_spread, 1:2, :).* view(s.v, 1:2, :).^2)
+    @views k_au = 0.50 * sum(view(m_spread, 3:N+2, :) .* view(s.v, 3:N+2, :).^2)
     s.v .= s.v .- s.vscale[1] .* (1.0 ./m_spread .* rhop)
+    s.storage_deltaKNO[s.exnum[1]+1] = k_no - 0.5*sum(view(m_spread, 1:2, :) .* view(s.v, 1:2, :) .^2)
+    s.storage_deltaKAu[s.exnum[1]+1] = k_au - 0.5*sum(view(m_spread, 3:N+2, :) .* view(s.v, 3:N+2, :) .^2)
+    s.storage_state[2*s.exnum[1] + 1] = s.surfp[jp]
+    s.storage_state[2*s.exnum[1] + 2] = s.surfh[jh]
     s.surfp .= s.surfpnew
+    s.storage_hoptimes[s.exnum[1]+1] = n
+    s.exnum .= s.exnum .+ one(Int64)
     #endif
 end
 #-----------------END hopping! hoprand < pbmaxest && hoprand < Pbmax ---------
@@ -391,6 +408,9 @@ end
 
 #storage_op_e
 @inline function storage_sim1!(s::Simulation, n::Int64) #seems ok
+    get_temperature!(s, n)
+    s.storage_K[n] = 0.5 * sum(s.v .^2 .* m_spread)
+    s.storage_P[n] = s.hp[1] + sum(s.λ[s.surfp])
     @views s.storage_aop[n] = sum(abs.(s.ψ[1, :]).^2) #rhoa
     store_temp = sum(abs.(transpose(s.Γ) * s.ψ).^2, dims=2)
     s.storage_op[:, n] .= store_temp[:, 1] #psip
@@ -406,10 +426,6 @@ end
     s.storage_e[3, n] = T_tot - T_vib - s.storage_e[1, n]
     s.storage_e[4, n] = sum(s.λ[s.surfp]) - sum(s.λ[s.surfpinit])
 
-    # @views s.storage_xno[1:3, 1] = s.x[1, :]
-    # @views s.storage_xno[4:6, 1] = s.x[2, :]
-    # @views s.storage_vno[1:3, 1] = s.v[1, :]
-    # @views s.storage_vno[4:6, 1] = s.v[2, :]
 end
 @inline function propagate_nuclear!(s::Simulation)
     s.vdot .= 1.0./m_spread .* s.F
@@ -443,4 +459,9 @@ function get_dhdea_dhdv_loop!(s::Simulation)
     temp = (vm * s.Γ) #ARRAY ALLOCATION !!!! solve later
     mul!(s.dhdv, transpose(s.Γ), temp)
     s.dhdv .= s.dhdv ./sqrt_de
+end
+
+function get_temperature!(s::Simulation, n::Int)
+    speed = [norm(s.v[i, :]) for i in 3:398]
+    s.storage_temp[n] = 2*m_au*sum(speed.^2)/(3*(N*0.75-3)*kb)
 end

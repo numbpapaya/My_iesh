@@ -45,6 +45,15 @@ function simulation_init()
     zeros(Float64, N+2, 3),#vdot
     zeros(Float64, N+2, 3),#vtemp
     MVector{1, Float64}(0.0), #vscale
+    zeros(Float64, tsteps), #KEt
+    zeros(Float64, tsteps), #PEt
+    zeros(Float64, Int(round(tsteps/2))),
+    zeros(Float64, Int(round(tsteps/2))),
+    zeros(Float64, Int(round(tsteps/2))),
+    zeros(Int64, Int(round(tsteps/2))),
+    MVector{1, Int64}(0),
+    MVector{1, Int64}(0),
+    MVector{1, Int64}(0)
     )
 end
 

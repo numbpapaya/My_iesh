@@ -1,6 +1,10 @@
 #iesh or electronic friction, set 0 for iesh and 1 for electronic friction
 global const latticeopt = 0
-
+#logging options:
+#   0 -> no logging
+#   1 -> logging of various parameters but no logging of velocity and position vectors of bulk atoms
+#   2 -> 2 + logging of bulk atoms
+global const logopt = 1
 #conversion factors to simulation units.
 
 # global const conv1 = 6.02214076 # Newton/meter * Angstrom^2 in kilojoule/mole
@@ -22,7 +26,7 @@ global const kb = 1.3806504e-23#0.08617*1e-3 * conv2 * conv3 	# boltzman constan
 #Simulation parameters
 const global Ne = 20     #number of electrons
 const global Ms = 40    #number of orbitals
-const global numtraj = 1   #number of trajectories
+const global numtraj = 100   #number of trajectories
 const global tsteps = 100000
 const global thop = 1   #number of timesteps between surface hops
 const global twrite = 5     #number of timesteps between data writing
