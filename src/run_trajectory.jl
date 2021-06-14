@@ -19,7 +19,7 @@ function multiple_trajectory()
     str_time = string(Dates.format(current_time, "yyyy-dd-mm_HH-MM-SS"))
     filepath_run = filepath_parent*curr_vers*"\\"*str_time *"\\"
     mkpath(filepath_run)
-    Threads.@threads for traj in numtraj
+    Threads.@threads for traj in 1:numtraj
         println(traj)
         s = one_trajectory()
         hdf5filename = "traj_"*string(traj)*".h5"
