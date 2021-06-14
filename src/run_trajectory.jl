@@ -16,16 +16,10 @@ function tprintln(str)
 end
 
 
-function one_trajectory()::Simulation
-    s = simulation_init();
-    simulation_constructor_x_v!(s);
-    simulation_constructor_nn!(s);
-    simulation_constructor_energy(s);
-    simulation_constructor_force(s);
-    propagate_init!(s);
-    simulate!(s);
-    return s
-end
+# function one_trajectory()::Simulation
+#
+#     return s
+# end
 
 function multiple_trajectory()
     #filepath_parent = "W:\\ALL\\Theory Group\\iesh\\data\\"
@@ -38,7 +32,17 @@ function multiple_trajectory()
     mkpath(filepath_run)
     Threads.@threads for traj in 1:numtraj
         tprintln(traj)
-        s = one_trajectory()
+
+		#run simulation
+		s = simulation_init()
+		simulation_constructor_x_v!(s)
+		simulation_constructor_nn!(s)
+		simulation_constructor_energy(s)
+		simulation_constructor_force(s)
+		propagate_init!(s)
+		simulate!(s)
+
+		#logging
         hdf5filename = "traj_"*string(traj)*".h5"
         hdf5filepath = filepath_run*hdf5filename
         fid = h5open(hdf5filepath, "w")
