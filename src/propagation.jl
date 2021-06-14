@@ -128,11 +128,11 @@ function simulate!(s::Simulation)
             s.trajzmin .= min_z_no
             s.trajtheta .= acos(s.Δ_no[3]/norm(s.Δ_no))
         end
-        t_prog = round(n/tsteps * 100.0; digits=3)
-        str_t_prog = string(t_prog)*"%"
-        traj_prog = round(min_z_no/Å; digits=3)
-        str_trajzmin_prog = string(traj_prog)
-        println(str_t_prog*", "*str_trajzmin_prog)
+        #t_prog = round(n/tsteps * 100.0; digits=3)
+        #str_t_prog = string(t_prog)*"%"
+        #traj_prog = round(min_z_no/Å; digits=3)
+        #str_trajzmin_prog = string(traj_prog)
+        #println(str_t_prog*", "*str_trajzmin_prog)
         # get state corresponding to current surface
         @inbounds for j in 1:Ne
             s.ϕ[:, j] = view(s.Γ, :, s.surfp[j])
@@ -201,7 +201,7 @@ function v_z_condition_check(s::Simulation) #should be ok
     @views v_cond = (s.v[1, 3]*m_N + s.v[2, 3]*m_O)/(m_N + m_O)
     @views z_cond = (s.x[1, 3] + s.x[2, 3])/2.0
     if z_cond > z_end && v_cond > 0.0
-        println("Boundary reached:End Simulation")
+        #println("Boundary reached:End Simulation")
         return -1
     end
     return 1
@@ -277,7 +277,7 @@ function hopping!_pbmaxest!(s::Simulation, hoprand::Float64, n::Int64)
     s.storage_phop[n] = s.Pb[Ne*(Ms+1-Ne)]
     #attempt hop conditioned on random number
     if hoprand < s.Pb[Ne*(Ms+1-Ne)]
-        print("Hopping! ")
+        #print("Hopping! ")
         hopping!_pbmaxest!_attempt!(s, hoprand, n)
     end
 end

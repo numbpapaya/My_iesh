@@ -3,7 +3,8 @@
 #read velocity file
 #filename = "C:\\Users\\Belal\\.julia\\dev\\My_iesh.jl\\data\\surface_Au111.dat"
 #filename = "/home/razamaza/dev/My_iesh.jl/data/surface_Au111.dat"
-filename = "C:\\Users\\braza2\\Documents\\GitHub\\My_iesh.jl\\data\\surface_Au111.dat"
+#filename = "C:\\Users\\braza2\\Documents\\GitHub\\My_iesh.jl\\data\\surface_Au111.dat"
+filename = "/home/braza2/My_iesh.jl/data/surface_Au111.dat"
 f = open(filename)
 data = readlines(f)
 close(f)
@@ -31,7 +32,9 @@ const global x_au0 = copy(x_au_temp)*Å
 
 #filename = "C:\\Users\\Belal\\.julia\\dev\\My_iesh.jl\\data\\gold_velocities.dat" #units in meter per second
 #filename = "/home/razamaza/dev/My_iesh.jl/data/gold_velocities.dat"
-filename ="C:\\Users\\braza2\\Documents\\GitHub\\My_iesh.jl\\data\\gold_velocities.dat"
+#filename ="C:\\Users\\braza2\\Documents\\GitHub\\My_iesh.jl\\data\\gold_velocities.dat"
+filename = "/home/braza2/My_iesh.jl/data/gold_velocities.dat"
+
 f = open(filename)
 data = readlines(f)
 close(f)

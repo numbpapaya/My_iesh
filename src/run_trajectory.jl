@@ -1,5 +1,19 @@
 export multiple_trajectories
+using Base.Threads
 
+const print_lock = SpinLock()
+const prints_pending = Vector{String}()
+function tprintln(str)
+	tid= Threads.threadid()
+	str = "[Thread $tid]: " * string(str)
+	lock(print_lock) do
+		push!(prints_pending, str)
+		if tid == 1 # Only first thread is allows to print
+			println.(prints_pending)
+			empty!(prints_pending)
+		end
+	end
+end
 
 
 function one_trajectory()::Simulation
@@ -14,13 +28,16 @@ function one_trajectory()::Simulation
 end
 
 function multiple_trajectory()
-    filepath_parent = "W:\\ALL\\Theory Group\\iesh\\data\\"
+    #filepath_parent = "W:\\ALL\\Theory Group\\iesh\\data\\"
+    filepath_parent = "/home/braza2/data/"
     current_time = Dates.now()
     str_time = string(Dates.format(current_time, "yyyy-dd-mm_HH-MM-SS"))
-    filepath_run = filepath_parent*curr_vers*"\\"*str_time *"\\"
+    #filepath_run = filepath_parent*curr_vers*"\\"*str_time *"\\"
+    filepath_run = filepath_parent*curr_vers*"/"*str_time *"/"
+
     mkpath(filepath_run)
-    Threads.@threads for traj in numtraj
-        println(traj)
+    Threads.@threads for traj in 1:numtraj
+        tprintln(traj)
         s = one_trajectory()
         hdf5filename = "traj_"*string(traj)*".h5"
         hdf5filepath = filepath_run*hdf5filename
