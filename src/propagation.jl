@@ -33,19 +33,22 @@ end
     s.storage_K[1] = 0.5 * sum(s.v.^2 .* m_spread)
     s.storage_P[1] = s.hp[1] + sum(s.λ[s.surfp])
     rtemp = norm(s.Δ_no)
-    @views s.storage_e[1, 1] = 0.5 * (mass_arr[1] + mass_arr[2]) *
+    s.storage_e[1, 1] = 0.5 * (mass_arr[1] + mass_arr[2]) *
      sum(((mass_arr[1].*s.v[1, :] + mass_arr[2].*s.v[2, :])/(mass_arr[1] + mass_arr[2])).^2)
     @views T_vib = 0.50 * μ * sum(((s.v[1, :] .- s.v[2, :]).*s.Δ_no/rtemp).^2)
     U_vib = F_n *(1.0 - exp(-δ_n * (rtemp -  r_0_NO)))^2
     E_vib = U_vib + T_vib
     s.storage_e[2, 1] = E_vib
     @views T_tot = 0.5 * mass_arr[1] * sum(s.v[1, :].^2) + 0.5*mass_arr[2]*sum(s.v[2, :].^2)
-    @views s.storage_e[3, 1] = T_tot - T_vib - s.storage_e[1, 1]
+    s.storage_e[3, 1] = T_tot - T_vib - view(s.storage_e, 1, 1)
     s.storage_e[4, 1] = sum(s.λ[s.surfp]) - sum(s.λ[s.surfpinit])       #das hier macht keinen Sinn
-    @views s.storage_xno[1:3, 1] = s.x[1, :]
-    @views s.storage_xno[4:6, 1] = s.x[2, :]
-    @views s.storage_vno[1:3, 1] = s.v[1, :]
-    @views s.storage_vno[4:6, 1] = s.v[2, :]#check seems okay
+    s.storage_xno[1:3, 1] = view(s.x, 1, :)
+    s.storage_xno[4:6, 1] = view(s.x, 2, :)
+    s.storage_vno[1:3, 1] = view(s.v, 1, :)
+    s.storage_vno[4:6, 1] = view(s.v, 2, :)#check seems okay
+    s.storage_psi[:, 1] = vec(s.ψ)
+    s.storage_xau[:, 1] = view(s.x, 3:398, :)
+    s.storage_vau[:, 1] = view(s.v, 3:398, :)
 end
 
 @inline function compute_eigen_H!(s::Simulation)
@@ -184,10 +187,14 @@ function simulate!(s::Simulation)
 
         s.v .= s.vtemp .+ 0.5 ./m_spread .* s.F * dt
         if logopt == 1
-            @views s.storage_xno[1:3, 1] = s.x[1, :]
-            @views s.storage_xno[4:6, 1] = s.x[2, :]
-            @views s.storage_vno[1:3, 1] = s.v[1, :]
-            @views s.storage_vno[4:6, 1] = s.v[2, :]#check seems okay
+            s.storage_xno[1:3, n] = view(s.x, 1, :)
+            s.storage_xno[4:6, n] = view(s.x, 2, :)
+            s.storage_vno[1:3, n] =view(s.x, 1, :)
+            s.storage_vno[4:6, n] = view(s.v, 2, :)#check seems okay
+            s.storage_psi[:, n] = vec(s.ψ)
+            s.storage_xau[:, n] = view(s.x, 3:398, :)
+            s.storage_vau[:, n] = view(s.v, 3:398, :)
+            s.storage_phi[:, n] = vec(s.ϕ)
         end
         s.nf .= s.nf .+ one(Int64)
     end
@@ -283,20 +290,19 @@ function hopping!_pbmaxest!(s::Simulation, hoprand::Float64, n::Int64)
 end
 
 @inline function get_blk_akl!(s::Simulation) #seems ok
-    ctemp1 = Matrix{ComplexF64}(undef, Ne, Ne)
     for jp in 1:Ne
         for jh in 1:Ms+1-Ne
             s.surfpnew .= s.surfp
             s.surfpnew[jp] = s.surfh[jh]
             for j in 1:Ne
-                @views s.ϕ[:, j] = s.Γ[:, s.surfpnew[j]]
+                s.ϕ[:, j] = view(s.Γ, :, s.surfpnew[j]])
             end
             #Ctemp = <phi_l|psi> is overlap between "new" adiabatic state
             #|phi_l> and electronic state |psi>
-            mul!(ctemp1, transpose(s.ϕ) , s.ψ)
-            ctemp = det(ctemp1)
+            mul!(s.ctemp1, transpose(s.ϕ) , s.ψ)
+            ctemp = det(s.ctemp1)
             s.akl[1] = s.phipsi[1] * conj(ctemp)
-            @views s.blk[jp, jh] = 2.0 * real(s.akl[1] * s.dm[s.surfp[jp], s.surfh[jh]])
+            s.blk[jp, jh] = 2.0 * real(s.akl[1] * view(s.dm,s.surfp[jp], s.surfh[jh]))
         end
     end
 end
@@ -423,7 +429,7 @@ end
     E_vib = U_vib + T_vib
     s.storage_e[2, n] = E_vib
     @views T_tot = 0.5 * mass_arr[1] * sum(s.v[1, :].^2) + 0.5*mass_arr[2]*sum(s.v[2, :].^2)
-    s.storage_e[3, n] = T_tot - T_vib - s.storage_e[1, n]
+    s.storage_e[3, n] = T_tot - T_vib - view(s.storage_e, 1, n)
     s.storage_e[4, n] = sum(s.λ[s.surfp]) - sum(s.λ[s.surfpinit])
 
 end
@@ -446,7 +452,7 @@ end
     @inbounds for j in 1:Ms+1
         @views temp .= abs.(transpose(Γ_hold) * s.Γ[:, j])
         Γmaxloc = argmax(temp)
-        temp2 = dot(Γ_hold[:, Γmaxloc], s.Γ[:, j])
+        temp2 = dot(view(Γ_hold,:, Γmaxloc), view(s.Γ, :, j))
         s.Γ[:, j] = s.Γ[:, j]/copysign(1.0, temp2)
     end
 end
@@ -454,7 +460,7 @@ end
 function get_dhdea_dhdv_loop!(s::Simulation)
     s.blk .= 0.0
     @inbounds for j in 1:Ms+1
-        s.dhdea[:, j] = s.Γ[1, :] .* s.Γ[1, j]
+        s.dhdea[:, j] = view(s.Γ, 1, :) .* view(s.Γ(1, j)
     end
     temp = (vm * s.Γ) #ARRAY ALLOCATION !!!! solve later
     mul!(s.dhdv, transpose(s.Γ), temp)

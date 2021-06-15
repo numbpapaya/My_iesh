@@ -51,10 +51,11 @@ struct Simulation{A, C, D}
     exnum::MVector{1, Int64}
     attnum::MVector{1, Int64}
     nf::MVector{1, Int64}
-    storage_psi::Array{Float64, 2}
-    storage_phi::Array{Float64, 2}
+    storage_psi::Array{ComplexF64, 2}
+    storage_phi::Array{ComplexF64, 2}
     storage_xau::Array{Float64, 2}
     storage_vau::Array{Float64, 2}
+    ctemp1::Array{ComplexF64, 2}
 end
 
 
