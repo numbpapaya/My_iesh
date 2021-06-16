@@ -40,15 +40,15 @@ end
     E_vib = U_vib + T_vib
     s.storage_e[2, 1] = E_vib
     @views T_tot = 0.5 * mass_arr[1] * sum(s.v[1, :].^2) + 0.5*mass_arr[2]*sum(s.v[2, :].^2)
-    s.storage_e[3, 1] = T_tot - T_vib - view(s.storage_e, 1, 1)
+    s.storage_e[3, 1] = T_tot - T_vib - s.storage_e[1, 1]
     s.storage_e[4, 1] = sum(s.λ[s.surfp]) - sum(s.λ[s.surfpinit])       #das hier macht keinen Sinn
     s.storage_xno[1:3, 1] = view(s.x, 1, :)
     s.storage_xno[4:6, 1] = view(s.x, 2, :)
     s.storage_vno[1:3, 1] = view(s.v, 1, :)
     s.storage_vno[4:6, 1] = view(s.v, 2, :)#check seems okay
     s.storage_psi[:, 1] = vec(s.ψ)
-    s.storage_xau[:, 1] = view(s.x, 3:398, :)
-    s.storage_vau[:, 1] = view(s.v, 3:398, :)
+    s.storage_xau[:, 1] = vec(s.x[3:398, :])
+    s.storage_vau[:, 1] = vec(s.v[3:398, :])
 end
 
 @inline function compute_eigen_H!(s::Simulation)
@@ -192,8 +192,8 @@ function simulate!(s::Simulation)
             s.storage_vno[1:3, n] =view(s.x, 1, :)
             s.storage_vno[4:6, n] = view(s.v, 2, :)#check seems okay
             s.storage_psi[:, n] = vec(s.ψ)
-            s.storage_xau[:, n] = view(s.x, 3:398, :)
-            s.storage_vau[:, n] = view(s.v, 3:398, :)
+            s.storage_xau[:, n] = vec(s.x[3:398, :])
+            s.storage_vau[:, n] = vec(s.v[3:398, :])
             s.storage_phi[:, n] = vec(s.ϕ)
         end
         s.nf .= s.nf .+ one(Int64)
@@ -295,14 +295,14 @@ end
             s.surfpnew .= s.surfp
             s.surfpnew[jp] = s.surfh[jh]
             for j in 1:Ne
-                s.ϕ[:, j] = view(s.Γ, :, s.surfpnew[j]])
+                s.ϕ[:, j] = view(s.Γ, :, s.surfpnew[j])
             end
             #Ctemp = <phi_l|psi> is overlap between "new" adiabatic state
             #|phi_l> and electronic state |psi>
             mul!(s.ctemp1, transpose(s.ϕ) , s.ψ)
             ctemp = det(s.ctemp1)
             s.akl[1] = s.phipsi[1] * conj(ctemp)
-            s.blk[jp, jh] = 2.0 * real(s.akl[1] * view(s.dm,s.surfp[jp], s.surfh[jh]))
+            s.blk[jp, jh] = 2.0 * real(s.akl[1] * s.dm[s.surfp[jp], s.surfh[jh]])
         end
     end
 end
@@ -429,7 +429,7 @@ end
     E_vib = U_vib + T_vib
     s.storage_e[2, n] = E_vib
     @views T_tot = 0.5 * mass_arr[1] * sum(s.v[1, :].^2) + 0.5*mass_arr[2]*sum(s.v[2, :].^2)
-    s.storage_e[3, n] = T_tot - T_vib - view(s.storage_e, 1, n)
+    s.storage_e[3, n] = T_tot - T_vib - s.storage_e[1, n]
     s.storage_e[4, n] = sum(s.λ[s.surfp]) - sum(s.λ[s.surfpinit])
 
 end
@@ -460,7 +460,7 @@ end
 function get_dhdea_dhdv_loop!(s::Simulation)
     s.blk .= 0.0
     @inbounds for j in 1:Ms+1
-        s.dhdea[:, j] = view(s.Γ, 1, :) .* view(s.Γ(1, j)
+        s.dhdea[:, j] = view(s.Γ, 1, :) .* s.Γ[1, j]
     end
     temp = (vm * s.Γ) #ARRAY ALLOCATION !!!! solve later
     mul!(s.dhdv, transpose(s.Γ), temp)

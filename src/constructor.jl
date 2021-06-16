@@ -56,8 +56,8 @@ function simulation_init()
     MVector{1, Int64}(0),
     zeros(ComplexF64, (Ms+1)*Ne, tsteps), #storage_psi
     zeros(ComplexF64, (Ms+1)*Ne, tsteps), #storage_phi
-    zeros(Float64, 396*6, tsteps), #storage_xau
-    zeros(Float64, 396*6, tsteps), #storage_vau
+    zeros(Float64, 396*3, tsteps), #storage_xau
+    zeros(Float64, 396*3, tsteps), #storage_vau
     zeros(ComplexF64, Ne, Ne) #ctemp1
     )
 end
