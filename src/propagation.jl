@@ -8,10 +8,7 @@ function propagate_init!(s::Simulation) #check seems okay #everything good.
     generate_therm_surf!(s)
 
     #set initial wavefunction
-    @views s.ψ .= convert(Array{ComplexF64, 2}, s.Γ[:, s.surfp])
-
-    # KE = sum(0.5 ./m_spread .* s.v.^2)
-    # PE = s.hp[1] + sum(s.Γ[s.surfp])
+    s.ψ .= convert(Array{ComplexF64, 2}, view(s.Γ, :, s.surfp))
 
     #calculate initial forces
     update_forces!(s)
@@ -35,7 +32,7 @@ end
     rtemp = norm(s.Δ_no)
     s.storage_e[1, 1] = 0.5 * (mass_arr[1] + mass_arr[2]) *
      sum(((mass_arr[1].*s.v[1, :] + mass_arr[2].*s.v[2, :])/(mass_arr[1] + mass_arr[2])).^2)
-    @views T_vib = 0.50 * μ * sum(((s.v[1, :] .- s.v[2, :]).*s.Δ_no/rtemp).^2)
+    @views T_vib = 0.50 * μ * dot(((s.v[1, :] .- s.v[2, :]), s.Δ_no/rtemp).^2)
     U_vib = F_n *(1.0 - exp(-δ_n * (rtemp -  r_0_NO)))^2
     E_vib = U_vib + T_vib
     s.storage_e[2, 1] = E_vib
@@ -64,7 +61,7 @@ end
     for i in 1:Ms+1
         s.dhdea[:, i] .= view(s.Γ, 1, :) .* s.Γ[1, i]
     end
-    temp = vm * s.Γ  #needs preallocation
+    mul!(s.temp_vm_gamma, vm, s.Γ)  #needs preallocation
     mul!(s.dhdv, transpose(s.Γ), temp)
     s.dhdv .= s.dhdv ./ sqrt_de
 end
@@ -163,9 +160,8 @@ function simulate!(s::Simulation)
             hopping!(s, hoprand, n)
         end
         # Propagate electronic Hamiltonian
-        uu = MVector{Ms+1, ComplexF64}(zeros(ComplexF64, Ms+1))
-        uuu = zeros(ComplexF64, Ms+1, Ne)
-        propagate_hamiltonian!(s, uu, uuu)
+
+        propagate_hamiltonian!(s)
         #storage
         if logopt == 1
             storage_sim1!(s, n)
@@ -259,7 +255,7 @@ end
 
 @inline @inbounds function get_blk2_pbmaxest!(s::Simulation) #should be ok
     rtemp = abs(s.phipsi[1] * s.phipsi[1])
-    if rtemp > one(eltype(rtemp))
+    if geaq(rtemp, 1.0)
         rtemp = 1.0
     end
     for jp in 1:Ne
@@ -312,11 +308,7 @@ end
     for jh in 1:Ms+1-Ne
         for jp in 1:Ne
             s.Pb[(jh-1) * Ne + jp] = rtemp
-            @views temp = s.blk[jp,jh]
-            if temp <= 0.0
-                temp = 0.0
-            end
-            s.Pb[(jh-1) * Ne + jp] = s.Pb[(jh-1)*Ne + jp] + temp
+            s.Pb[(jh-1) * Ne + jp] = s.Pb[(jh-1)*Ne + jp] + s.blk[jp, jh]*(s.blk[jp, jh] > 0.0)
             rtemp = s.Pb[(jh - 1) * Ne + jp]
         end
     end
@@ -370,8 +362,8 @@ end
     s.surfpnew[jp] = s.surfh[jh]
     e_el_old = sum(s.λ[s.surfp])
     e_el_new = sum(s.λ[s.surfpnew])
-    k_rhop = 0.5 * sum(1.0 ./ m_spread .* rhop .^2)
-    k_temp = sum(s.v .* rhop)
+    k_rhop = 0.5 * sum(m_spread .* rhop .^2)
+    k_temp = sum(m_spread .* s.v .* rhop)
 
     return e_el_old, e_el_new, k_rhop, k_temp
 end
@@ -384,11 +376,11 @@ end
 
 @inline function update_vel_populations!(s::Simulation, jp::Int64, jh::Int64, rhop::float_array,
     k_temp::Float64, k_rhop::Float64, e_el_old::Float64, e_el_new::Float64, n::Int64)
-    rtemp = s.vscale[1]
+
     s.vscale[1] = (k_temp - sqrt(k_temp^2 - 4.0 * k_rhop * (e_el_new - e_el_old)))/2.0/k_rhop
-    @views k_no = 0.50 * sum(view(m_spread, 1:2, :).* view(s.v, 1:2, :).^2)
-    @views k_au = 0.50 * sum(view(m_spread, 3:N+2, :) .* view(s.v, 3:N+2, :).^2)
-    s.v .= s.v .- s.vscale[1] .* (1.0 ./m_spread .* rhop)
+    k_no = 0.50 * sum(view(m_spread, 1:2, :).* view(s.v, 1:2, :).^2)
+    k_au = 0.50 * sum(view(m_spread, 3:N+2, :) .* view(s.v, 3:N+2, :).^2)
+    s.v .= s.v .- s.vscale[1] .* rhop)
     s.storage_deltaKNO[s.exnum[1]+1] = k_no - 0.5*sum(view(m_spread, 1:2, :) .* view(s.v, 1:2, :) .^2)
     s.storage_deltaKAu[s.exnum[1]+1] = k_au - 0.5*sum(view(m_spread, 3:N+2, :) .* view(s.v, 3:N+2, :) .^2)
     s.storage_state[2*s.exnum[1] + 1] = s.surfp[jp]
@@ -402,12 +394,10 @@ end
 
 
 
-@inline function propagate_hamiltonian!(s::Simulation, uu::MVector{Ms+1, ComplexF64},
-     uuu::Matrix{ComplexF64}) # seems ok
+@inline function propagate_hamiltonian!(s::Simulation) # seems ok
     s.ψ .= transpose(s.Γ) * s.ψ
-
-    uu .= exp.(-1im * s.λ * dt/hbar)
-    uuu .= repeat(uu, 1, Ne)
+    s.uu .= exp.(-1im * s.λ * dt/hbar)
+    s.uuu .= repeat(uu, 1, Ne)
     s.ψ .= uuu .* s.ψ
     s.ψ .= s.Γ * s.ψ
 end
@@ -424,7 +414,7 @@ end
     rtemp = norm(s.Δ_no)
     s.storage_e[1, n] = 0.5 * (mass_arr[1] + mass_arr[2]) *
      sum(((mass_arr[1].*s.v[1, :] + mass_arr[2].*s.v[2, :])/(mass_arr[1] + mass_arr[2])).^2)
-    @views T_vib = 0.50 * μ * sum(((s.v[1, :] .- s.v[2, :]).*s.Δ_no/rtemp).^2)
+    @views T_vib = 0.50 * μ * dot((s.v[1, :] .- s.v[2, :]), s.Δ_no/rtemp).^2)
     U_vib = F_n *(1.0 - exp(-δ_n * (rtemp -  r_0_NO)))^2
     E_vib = U_vib + T_vib
     s.storage_e[2, n] = E_vib
@@ -434,10 +424,10 @@ end
 
 end
 @inline function propagate_nuclear!(s::Simulation)
-    s.vdot .= 1.0./m_spread .* s.F
+    s.vdot .= inv_m_spread .* s.F
     s.x .= s.x .+ s.v * dt .+ 0.50*s.vdot * dt^2
     s.Δ_no .=  s.x[1, :] - s.x[2, :]
-    s.vtemp .= s.v .+ 0.50*s.vdot*dt #ARRAY ALLOCATION !!!! solve later
+    s.vtemp .= s.v .+ 0.50*s.vdot*dt
 end
 
 @inline function get_eigen_sim!(s::Simulation)
@@ -445,16 +435,15 @@ end
     get_F_all(s)            #update partial derivatives dhp_i
     s.H .= h0 .+ vm .* s.hp[3] ./sqrt_de
     s.H[1, 1] = s.H[1, 1] + s.hp[2] - s.hp[1]
-    Γ_hold = deepcopy(s.Γ) #ARRAY ALLOCATION !!!! solve later
+    # s.Γ_hold = deepcopy(s.Γ) #ARRAY ALLOCATION !!!! solve later
     s.λ .= eigvals(s.H)
     s.Γ .= eigvecs(s.H)
-    temp = zeros(Float64, Ms+1)
-    @inbounds for j in 1:Ms+1
-        @views temp .= abs.(transpose(Γ_hold) * s.Γ[:, j])
-        Γmaxloc = argmax(temp)
-        temp2 = dot(view(Γ_hold,:, Γmaxloc), view(s.Γ, :, j))
-        s.Γ[:, j] = s.Γ[:, j]/copysign(1.0, temp2)
-    end
+    # @inbounds for j in 1:Ms+1
+    #     s.temp_prop_gamma .= abs.(transpose(Γ_hold) * view(s.Γ, :, j))
+    #     Γmaxloc = argmax(temp)
+    #     temp2 = dot(view(Γ_hold,:, Γmaxloc), view(s.Γ, :, j))
+    #     s.Γ[:, j] = s.Γ[:, j]/copysign(1.0, temp2)
+    # end
 end
 
 function get_dhdea_dhdv_loop!(s::Simulation)

@@ -149,6 +149,7 @@ const global μ = m_N*m_O/(m_N + m_O)
 m_spread_1 =repeat(mass_arr, inner=[1, 3])
 m_spread_2 = repeat([m_au], inner=[1, 3], outer=[527, 1])
 const global m_spread = vcat(m_spread_1, m_spread_2)
+const global inv_m_spread = 1.0 ./ m_spread
 
 function get_r0()
     r0_old_basis = 0.5*a*collect([0,1,1,0,1,-1,1,0,1,-1,0,1 ,1,1,0 ,1,-1,0,0,-1,
@@ -195,4 +196,5 @@ global const e_diabat = SVector{Ms, Float64}(e_diabat_temp)
 global const vm = vm_temp
 
 
-dnint(x) = x <= zero(eltype(x)) ? floor(x - 0.5) : floor(x + 0.5)
+leaq(a,b) = (a <= b) || (a ≈ b)
+geaq(a, b) = (a >= b) || (a ≈ b)

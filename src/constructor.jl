@@ -23,15 +23,15 @@ function simulation_init()
     zeros(Float64, Ms+1, Ms+1), #H
     zeros(ComplexF64, Ms+1, Ne), #psi
     zeros(ComplexF64, Ms+1, Ne), #phi
-    zeros(Float64, Ms+1, Ms+1), #eigvec_H
-    MVector{C, Float64}(zeros(Float64, Ms+1)), #eigval_H
+    zeros(Float64, Ms+1, Ms+1), #Γ
+    MVector{C, Float64}(zeros(Float64, Ms+1)), #λ
     zeros(Float64, Ms+1, Ms+1), #dhdea
     zeros(Float64, Ms+1, Ms+1), #dhdv
     MVector{1, ComplexF64}(zero(ComplexF64)), #akl
     MVector{1, Float64}(0.0), #akk
     zeros(Float64, Ms+1,Ms+1), #DM
     zeros(Float64, Ne, Ms+1-Ne), #blk
-    zeros(Float64, Ms+1, Ms+1), #blk2
+    zeros(Float64, Ne, Ms+1-Ne), #blk2
     zeros(Float64, Ne*(Ms+1-Ne)), #Pb
     zeros(Float64, tsteps), #storage_aop
     zeros(Float64, Ms+1, tsteps), #storage_op,
@@ -58,8 +58,12 @@ function simulation_init()
     zeros(ComplexF64, (Ms+1)*Ne, tsteps), #storage_phi
     zeros(Float64, 396*3, tsteps), #storage_xau
     zeros(Float64, 396*3, tsteps), #storage_vau
-    zeros(ComplexF64, Ne, Ne) #ctemp1
-    )
+    zeros(ComplexF64, Ne, Ne), #temp_akl
+    MVector{C, ComplexF64}(zero(ComplexF64)), #uu
+    zeros(Float64, Ms+1, Ne), #uuu
+    zeros(Float64, Ms+1, Ms+1),   #temp_vm_gamma
+    zeros(Float64, Ms+1, Ms+1), #Γ_hold
+    MVector{C, Float64}(zeros(Float64, C))),#temp_prop_gamma
 end
 
 
