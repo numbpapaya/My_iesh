@@ -52,8 +52,8 @@ end
 end
 
 @inline function compute_eigen_H!(s::Simulation)
-    s.H .= Symmetric(h0 .+ vm .* s.hp[3] ./ sqrt_de)
-    s.H[1, 1] = s.H[1, 1] + s.hp[2] - s.hp[1]
+    s.H .= Symmetric(h0 .+ vm .* s.hp[3] ./ sqrt_de) #check
+    s.H[1, 1] = s.H[1, 1] + s.hp[2] - s.hp[1] #check
     s.λ .= eigvals(s.H)
     s.Γ .= eigvecs(s.H)#check seems okay
 
@@ -90,8 +90,8 @@ end
 
     for t in 1:Ne
         for k in 1:Ne*(Ms + 1 - Ne)
-            hoprand = rand(Float64, 3)
-            #hoprand = collect([0.2, 0.4, 0.6])
+            #hoprand = rand(Float64, 3)
+            hoprand = collect([0.2, 0.4, 0.01])
             jp = Int(floor(hoprand[1]*Ne)) + 1
             jh = Int(floor(hoprand[2] * (Ms + 1 - Ne))) + 1
             rtemp = exp(-(s.λ[s.surfh[jh]] - s.dhp_neutral[s.surfp[jp]])) / (kb * tsurf)

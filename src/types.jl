@@ -21,6 +21,7 @@ struct Simulation{A, C, D}
     ψ::Array{ComplexF64, 2}
     ϕ::Array{ComplexF64, 2}
     Γ::Array{Float64, 2}
+    Γ2::Array{Float64, 2}
     λ::MVector{C, Float64}
     dhdea::Array{Float64, 2}
     dhdv::Array{Float64, 2}

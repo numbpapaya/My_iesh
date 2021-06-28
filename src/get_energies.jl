@@ -184,9 +184,9 @@ end
 #---------------------------Neutral----------------------------------
 
 @inline function get_E_neutral(s::Simulation)::Float64  #check
-    E_n_o_neutral = get_E_n_o_neutral(s)
-    E_au_n_neutral = get_E_au_n_neutral(s)
-    E_au_o_neutral = get_E_au_o_neutral(s)
+    E_n_o_neutral = get_E_n_o_neutral(s) #check
+    E_au_n_neutral = get_E_au_n_neutral(s) #check
+    E_au_o_neutral = get_E_au_o_neutral(s) #check
     return E_n_o_neutral + E_au_n_neutral + E_au_o_neutral
 end
 
@@ -232,7 +232,7 @@ end
 #---------------------------Neutral AU_N----------------------------------
 
 @inline function get_E_au_n_neutral_loop(x::Array{Float64,2}, i::Int, V::Float64,
-     delta_xn, cutoff_test, bool_cutoff_test, s::Simulation)::Float64
+    delta_xn, cutoff_test, bool_cutoff_test, s::Simulation)::Float64
     @views delta_xn .=  x[i+2, :] .- x[1, :]
     delta_xn[1] = delta_xn[1] - cell[1]*round(delta_xn[1]/cell[1])
     delta_xn[2] = delta_xn[2] - cell[2]*round(delta_xn[2]/cell[2])
@@ -240,22 +240,24 @@ end
     cutoff_test .= abs.(delta_xn) .- cutoff
     bool_cutoff_test .=  cutoff_test .<= 0.0
     sum_bool = sum(bool_cutoff_test)
+    V_temp = 0.0
     if sum_bool != zero(sum_bool)
         norm_delta_xn = norm(delta_xn)
         if norm_delta_xn <= cutoff
-            V = V + B_n * (exp(-β_n*norm_delta_xn) - exp_beta_n_cutoff)
+            V_temp = B_n * (exp(-β_n*norm_delta_xn) - exp_beta_n_cutoff)
         end
     end
-    return V
+    return V_temp
 end
 
 @inbounds @inline function get_E_au_n_neutral(s::Simulation)::Float64
     V = 0.0
-    delta_xn = Vector{Float64}(undef, 3)
-    cutoff_test = Vector{Float64}(undef, 3)
-    bool_cutoff_test = BitArray{1}(undef, 3)
+    delta_xn = zeros(Float64, 3)
+    cutoff_test = zeros(Float64, 3)
+    bool_cutoff_test = zeros(Bool, 3)
     for i in 1:N
-        V = get_E_au_n_neutral_loop(s.x, i, V, delta_xn, cutoff_test, bool_cutoff_test, s)
+        V_temp =  get_E_au_n_neutral_loop(s.x, i, V, delta_xn, cutoff_test, bool_cutoff_test, s)
+        V = V + V_temp
     end
     return V
 end

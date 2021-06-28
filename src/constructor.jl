@@ -24,6 +24,7 @@ function simulation_init()
     zeros(ComplexF64, Ms+1, Ne), #psi
     zeros(ComplexF64, Ms+1, Ne), #phi
     zeros(Float64, Ms+1, Ms+1), #eigvec_H
+    zeros(Float64, Ms+1, Ms+1), #eigvec_H2
     MVector{C, Float64}(zeros(Float64, Ms+1)), #eigval_H
     zeros(Float64, Ms+1, Ms+1), #dhdea
     zeros(Float64, Ms+1, Ms+1), #dhdv
@@ -31,7 +32,7 @@ function simulation_init()
     MVector{1, Float64}(0.0), #akk
     zeros(Float64, Ms+1,Ms+1), #DM
     zeros(Float64, Ne, Ms+1-Ne), #blk
-    zeros(Float64, Ms+1, Ms+1), #blk2
+    zeros(Float64, Ne, Ms+1-Ne), #blk2 #BUUUUUG
     zeros(Float64, Ne*(Ms+1-Ne)), #Pb
     zeros(Float64, tsteps), #storage_aop
     zeros(Float64, Ms+1, tsteps), #storage_op,
@@ -71,37 +72,38 @@ function simulation_constructor_x_v!(s::Simulation)
     #initial position of NO
     x0no = zeros(Float64, 2, 3)
 
-    xno = rand() #temporary variable
-    #xno = 0.1#rand() #temporary variable
+    #xno = rand() #temporary variable
+    xno = 0.1#rand() #temporary variable
     xno = @. xno * [cell[1], cell[2], 1.0*Å]
     #xno[3] = xno[3] + 4.5*Å # Initial z position of NO = 10
-    xno[3] = xno[3] + 10.5*Å
-    theta_no = rand() # Initial orientation of NO, 0 = O-down, PI = N-down
-    #theta_no = 0.1#rand() # Initial orientation of NO, 0 = O-down, PI = N-down
+    xno[3] = xno[3] + 2.5*Å
+    #theta_no = rand() # Initial orientation of NO, 0 = O-down, PI = N-down
+    theta_no = 0.1#rand() # Initial orientation of NO, 0 = O-down, PI = N-down
     theta_no = asin(2.0 * theta_no - 1.0) + π/2.0
-    phi_no = rand()
-    #phi_no = 0.1#rand()
+    #phi_no = rand()
+    phi_no = 0.1#rand()
     phi_no = 2.0*π*phi_no
 
 
 
     x0no[1, :] = xno .+ r_no/2.0 * [sin(phi_no)*sin(theta_no), cos(phi_no)*sin(theta_no), cos(theta_no)]
     x0no[2, :] = xno .- r_no/2.0 * [sin(phi_no)*sin(theta_no), cos(phi_no)*sin(theta_no), cos(theta_no)]
-    #x0no[1, 3] = x0no[1, 3] +1Å
+    x0no[1, 3] = x0no[1, 3] +1.0*Å
+    x0no[2, 2] = x0no[2, 2] + 0.5*Å
     xno = x0no[1,:] - x0no[2, :]
     xno = xno / norm(xno)
 
     #initial velocity of no
     v0no = zeros(Float64, 2, 3)
-    phi_no = 0.0
+    phi_no = 0.5
     v0no[1, :] = vz_no * [sin(phi_no)*sin(phi_inc), -cos(phi_no)*sin(phi_inc), -cos(phi_inc)]
     v0no[2, :] = v0no[1, :]
     v0no[1, :] = v0no[1, :] + vvib_no * xno * mass_arr[2] / (mass_arr[1] + mass_arr[2])
     v0no[2, :] = v0no[2, :] - vvib_no * xno * mass_arr[1] / (mass_arr[1] + mass_arr[2])
 
     #add rotational velocity
-    theta_no = rand()
-    #theta_no = 0.1#rand()
+    #theta_no = rand()
+    theta_no = 0.1#rand()
     theta_no = asin(2.0 * theta_no - 1.0) + π/2.0
     vrot_no = @. [-xno[3], 0.0, xno[1]] * cos(theta_no)/sqrt(xno[1]^2 + xno[3]^2)
     vrot_no = @. vrot_no + [xno[1], -(xno[1]^2 + xno[3]^2)/xno[2], xno[3]] *
@@ -111,10 +113,11 @@ function simulation_constructor_x_v!(s::Simulation)
     v0no[1, :] = @. v0no[1, :] + vvib_no * vrot_no * sqrt(mass_arr[2]/mass_arr[1])
     v0no[2, :] = @. v0no[2, :] - vvib_no * vrot_no * sqrt(mass_arr[1]/mass_arr[2])
     #stack information to x_au0 and v_au0
-    v0 = [v0no; v_au0]
+    v0 = [v0no; v_au0 .* 0]
     x0 = [x0no; x_au0]
     s.x .= x0
     s.v .= v0
+    #s.v[1:2,:] .= s.v[1:2, :] .+ 13000.0
     s.Δ_no .= x0[1, :] - x0[2, :]
 end
 
