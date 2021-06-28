@@ -1,7 +1,7 @@
 module My_iesh
 
 
-curr_vers = "v.0.8"
+curr_vers = "v.0.9"
 using LinearAlgebra
 using Random
 using StaticArrays
