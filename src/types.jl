@@ -61,6 +61,7 @@ struct Simulation{A, C, D}
     temp_vm_gamma::Array{Float64, 2}
     Γ_hold::Array{Float64, 2}
     temp_prop_gamma::MVector{C, Float64}
+    temp_phi_psi::Array{ComplexF64, 2}
 end
 
 

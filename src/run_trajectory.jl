@@ -30,8 +30,8 @@ function multiple_trajectory()
     filepath_run = filepath_parent*curr_vers*"/"*str_time *"/"
 
     mkpath(filepath_run)
-    for traj in 1:numtraj
-        #tprintln(traj)
+    Threads.@threads for traj in 1:numtraj
+        tprintln(traj)
 
 		#run simulation
 		s = simulation_init()

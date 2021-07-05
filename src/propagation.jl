@@ -32,7 +32,7 @@ end
     rtemp = norm(s.Δ_no)
     s.storage_e[1, 1] = 0.5 * (mass_arr[1] + mass_arr[2]) *
      sum(((mass_arr[1].*s.v[1, :] + mass_arr[2].*s.v[2, :])/(mass_arr[1] + mass_arr[2])).^2)
-    @views T_vib = 0.50 * μ * dot(((s.v[1, :] .- s.v[2, :]), s.Δ_no/rtemp).^2)
+    @views T_vib = 0.50 * μ * dot((s.v[1, :] .- s.v[2, :]), s.Δ_no/rtemp)
     U_vib = F_n *(1.0 - exp(-δ_n * (rtemp -  r_0_NO)))^2
     E_vib = U_vib + T_vib
     s.storage_e[2, 1] = E_vib
@@ -62,7 +62,7 @@ end
         s.dhdea[:, i] .= view(s.Γ, 1, :) .* s.Γ[1, i]
     end
     mul!(s.temp_vm_gamma, vm, s.Γ)  #needs preallocation
-    mul!(s.dhdv, transpose(s.Γ), temp)
+    mul!(s.dhdv, transpose(s.Γ), s.temp_vm_gamma)
     s.dhdv .= s.dhdv ./ sqrt_de
 end
 
@@ -214,8 +214,8 @@ end
 @inbounds @inline function get_dm!(s::Simulation) #should be ok
     # Calculate nonadiabatic coupling elements DM between adiabatic orbitals s.dm
     # phipsi = <phi_k|psi> is overlap between "current" adiabatic state |phi_k> and electronic state |psi>
-    temp_1 = transpose(s.ϕ) * s.ψ   #preallocation
-    s.phipsi[1] = det(temp_1)
+    mul!(s.temp_phi_psi,transpose(s.ϕ) , s.ψ)
+    s.phipsi[1] = det(s.temp_phi_psi)
     # Calculate akk as defined in Tully JCP 1990
     s.akk[1] = abs(s.phipsi[1])^2 #corrected error
 
@@ -295,8 +295,8 @@ end
             end
             #Ctemp = <phi_l|psi> is overlap between "new" adiabatic state
             #|phi_l> and electronic state |psi>
-            mul!(s.ctemp1, transpose(s.ϕ) , s.ψ)
-            ctemp = det(s.ctemp1)
+            mul!(s.temp_akl, transpose(s.ϕ) , s.ψ)
+            ctemp = det(s.temp_akl)
             s.akl[1] = s.phipsi[1] * conj(ctemp)
             s.blk[jp, jh] = 2.0 * real(s.akl[1] * s.dm[s.surfp[jp], s.surfh[jh]])
         end
@@ -380,7 +380,7 @@ end
     s.vscale[1] = (k_temp - sqrt(k_temp^2 - 4.0 * k_rhop * (e_el_new - e_el_old)))/2.0/k_rhop
     k_no = 0.50 * sum(view(m_spread, 1:2, :).* view(s.v, 1:2, :).^2)
     k_au = 0.50 * sum(view(m_spread, 3:N+2, :) .* view(s.v, 3:N+2, :).^2)
-    s.v .= s.v .- s.vscale[1] .* rhop)
+    s.v .= s.v .- s.vscale[1] .* rhop
     s.storage_deltaKNO[s.exnum[1]+1] = k_no - 0.5*sum(view(m_spread, 1:2, :) .* view(s.v, 1:2, :) .^2)
     s.storage_deltaKAu[s.exnum[1]+1] = k_au - 0.5*sum(view(m_spread, 3:N+2, :) .* view(s.v, 3:N+2, :) .^2)
     s.storage_state[2*s.exnum[1] + 1] = s.surfp[jp]
@@ -397,8 +397,8 @@ end
 @inline function propagate_hamiltonian!(s::Simulation) # seems ok
     s.ψ .= transpose(s.Γ) * s.ψ
     s.uu .= exp.(-1im * s.λ * dt/hbar)
-    s.uuu .= repeat(uu, 1, Ne)
-    s.ψ .= uuu .* s.ψ
+    s.uuu .= repeat(s.uu, 1, Ne)
+    s.ψ .= s.uuu .* s.ψ
     s.ψ .= s.Γ * s.ψ
 end
 
@@ -414,7 +414,7 @@ end
     rtemp = norm(s.Δ_no)
     s.storage_e[1, n] = 0.5 * (mass_arr[1] + mass_arr[2]) *
      sum(((mass_arr[1].*s.v[1, :] + mass_arr[2].*s.v[2, :])/(mass_arr[1] + mass_arr[2])).^2)
-    @views T_vib = 0.50 * μ * dot((s.v[1, :] .- s.v[2, :]), s.Δ_no/rtemp).^2)
+    @views T_vib = 0.50 * μ * dot((s.v[1, :] .- s.v[2, :]), s.Δ_no/rtemp)
     U_vib = F_n *(1.0 - exp(-δ_n * (rtemp -  r_0_NO)))^2
     E_vib = U_vib + T_vib
     s.storage_e[2, n] = E_vib
@@ -451,8 +451,8 @@ function get_dhdea_dhdv_loop!(s::Simulation)
     @inbounds for j in 1:Ms+1
         s.dhdea[:, j] = view(s.Γ, 1, :) .* s.Γ[1, j]
     end
-    temp = (vm * s.Γ) #ARRAY ALLOCATION !!!! solve later
-    mul!(s.dhdv, transpose(s.Γ), temp)
+    mul!(s.temp_vm_gamma, vm , s.Γ) #ARRAY ALLOCATION !!!! solve later
+    mul!(s.dhdv, transpose(s.Γ), s.temp_vm_gamma)
     s.dhdv .= s.dhdv ./sqrt_de
 end
 

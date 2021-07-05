@@ -59,11 +59,13 @@ function simulation_init()
     zeros(Float64, 396*3, tsteps), #storage_xau
     zeros(Float64, 396*3, tsteps), #storage_vau
     zeros(ComplexF64, Ne, Ne), #temp_akl
-    MVector{C, ComplexF64}(zero(ComplexF64)), #uu
+    MVector{C, ComplexF64}(zeros(ComplexF64, C)), #uu
     zeros(Float64, Ms+1, Ne), #uuu
     zeros(Float64, Ms+1, Ms+1),   #temp_vm_gamma
     zeros(Float64, Ms+1, Ms+1), #Γ_hold
-    MVector{C, Float64}(zeros(Float64, C))),#temp_prop_gamma
+    MVector{C, Float64}(zeros(Float64, C)),#temp_prop_gamma
+    zeros(ComplexF64, Ne, Ne) #temp_phi_psi
+)
 end
 
 
