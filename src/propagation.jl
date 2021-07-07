@@ -39,13 +39,15 @@ end
     @views T_tot = 0.5 * mass_arr[1] * sum(s.v[1, :].^2) + 0.5*mass_arr[2]*sum(s.v[2, :].^2)
     s.storage_e[3, 1] = T_tot - T_vib - s.storage_e[1, 1]
     s.storage_e[4, 1] = sum(s.λ[s.surfp]) - sum(s.λ[s.surfpinit])       #das hier macht keinen Sinn
-    s.storage_xno[1:3, 1] = view(s.x, 1, :)
-    s.storage_xno[4:6, 1] = view(s.x, 2, :)
-    s.storage_vno[1:3, 1] = view(s.v, 1, :)
-    s.storage_vno[4:6, 1] = view(s.v, 2, :)#check seems okay
-    s.storage_psi[:, 1] = vec(s.ψ)
-    s.storage_xau[:, 1] = vec(s.x[3:398, :])
-    s.storage_vau[:, 1] = vec(s.v[3:398, :])
+    if logopt == 1
+        s.storage_xno[1:3, 1] = view(s.x, 1, :)
+        s.storage_xno[4:6, 1] = view(s.x, 2, :)
+        s.storage_vno[1:3, 1] = view(s.v, 1, :)
+        s.storage_vno[4:6, 1] = view(s.v, 2, :)#check seems okay
+        s.storage_psi[:, 1] = vec(s.ψ)
+        s.storage_xau[:, 1] = vec(s.x[3:398, :])
+        s.storage_vau[:, 1] = vec(s.v[3:398, :])
+    end
 end
 
 @inline function compute_eigen_H!(s::Simulation)

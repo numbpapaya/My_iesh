@@ -4,7 +4,7 @@ global const latticeopt = 0
 #   0 -> no logging
 #   1 -> logging of various parameters but no logging of velocity and position vectors of bulk atoms
 #   2 -> 2 + logging of bulk atoms
-global const logopt = 1
+global const logopt = 0
 #conversion factors to simulation units.
 
 # global const conv1 = 6.02214076 # Newton/meter * Angstrom^2 in kilojoule/mole
@@ -30,7 +30,7 @@ const global numtraj = 100   #number of trajectories
 const global tsteps = 100000
 const global thop = 1   #number of timesteps between surface hops
 const global twrite = 5     #number of timesteps between data writing
-const global dt = 0.1 * fs  #time stepsize in Femtoseconds
+const global dt = 0.5 * fs  #time stepsize in Femtoseconds
 #these energy parameters are used in subsequent calculations with other variables defined
 # in the simulation units Angstrom, amu, femtoseconds. Therefore we need to convert
 # kilojoule/mole to amu*angstrom^2/femtosecond^2

@@ -136,3 +136,7 @@ end
 function simulation_constructor_force(s::Simulation)
     get_F_all(s)
 end
+
+function simulation_constructor_x_300K!(s::Simulation)
+    s.x[3:end, :] .= x_300K0
+end
