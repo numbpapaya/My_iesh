@@ -18,7 +18,7 @@ function simulation_init()
     MVector{D, Int16}(zeros(Int16, Ms-Ne+1)), #surfh
     MVector{A, Int16}(zeros(Int16, Ne)), #surfpinit
     MVector{A, Int16}(zeros(Int16, Ne)), #surfpnew
-    MVector{1, Float64}(10.0*Å), # trajzmin
+    MVector{1, Float64}(10.0), # trajzmin
     MVector{1, Float64}(0.0), #trajtheta
     zeros(Float64, Ms+1, Ms+1), #H
     zeros(ComplexF64, Ms+1, Ne), #psi
@@ -79,9 +79,9 @@ function simulation_constructor_x_v!(s::Simulation)
 
     xno = rand() #temporary variable
     #xno = 0.1#rand() #temporary variable
-    xno = @. xno * [cell[1], cell[2], 1.0*Å]
+    xno = @. xno * [cell[1], cell[2], 1.0]
     #xno[3] = xno[3] + 4.5*Å # Initial z position of NO = 10
-    xno[3] = xno[3] + 10.5*Å
+    xno[3] = xno[3] + 10.5
     theta_no = rand() # Initial orientation of NO, 0 = O-down, PI = N-down
     #theta_no = 0.1#rand() # Initial orientation of NO, 0 = O-down, PI = N-down
     theta_no = asin(2.0 * theta_no - 1.0) + π/2.0
