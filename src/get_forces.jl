@@ -32,7 +32,7 @@ function get_F_all_inner!(s::Simulation, F_au, F_au_n_n , F_au_o_n,F_n_o_n_temp 
     F_au_o_n .= get_F_au_o_neutral(s)
     F_n_o_n_temp .= get_F_n_o_neutral(s)
     F_n_o_n .= [F_n_o_n_temp; zeros(Float64, N, 3)]
-    F_neutral .= @. F_au_n_n + F_au_o_n + F_n_o_n - F_au #check #add half force of gold-gold?
+    F_neutral .= @. F_au_n_n + F_au_o_n + F_n_o_n + F_au #check #add half force of gold-gold?
 
     F_au_n_i .= get_F_au_n_ion(s) #check
     F_au_o_i.= get_F_au_o_ion(s) #check
@@ -40,7 +40,7 @@ function get_F_all_inner!(s::Simulation, F_au, F_au_n_n , F_au_o_n,F_n_o_n_temp 
     F_n_o_i .= [F_n_o_i_temp; zeros(Float64, N, 3)]
     F_image_i_temp .= get_F_image_ion(s)
     F_image_i .= [F_image_i_temp; zeros(Float64, N, 3)]
-    F_ion .= @. F_au_n_i + F_au_o_i + F_n_o_i + F_image_i - F_au #check #add half force of gold-gold?
+    F_ion .= @. F_au_n_i + F_au_o_i + F_n_o_i + F_image_i + F_au #check #add half force of gold-gold?
 
 
     F_au_n_c .= get_F_au_n_coup(s)

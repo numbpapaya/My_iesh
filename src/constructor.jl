@@ -18,7 +18,7 @@ function simulation_init()
     MVector{D, Int16}(zeros(Int16, Ms-Ne+1)), #surfh
     MVector{A, Int16}(zeros(Int16, Ne)), #surfpinit
     MVector{A, Int16}(zeros(Int16, Ne)), #surfpnew
-    MVector{1, Float64}(10.0*Å), # trajzmin
+    MVector{1, Float64}(10.0), # trajzmin
     MVector{1, Float64}(0.0), #trajtheta
     zeros(Float64, Ms+1, Ms+1), #H
     zeros(ComplexF64, Ms+1, Ne), #psi
@@ -73,29 +73,30 @@ function simulation_constructor_x_v!(s::Simulation)
     x0no = zeros(Float64, 2, 3)
 
     #xno = rand() #temporary variable
-    xno = 0.1#rand() #temporary variable
-    xno = @. xno * [cell[1], cell[2], 1.0*Å]
-    #xno[3] = xno[3] + 4.5*Å # Initial z position of NO = 10
-    xno[3] = xno[3] + 2.5*Å
+    xno = 0.5#rand() #temporary variable
+    xno = @. xno * [cell[1], cell[2], 1.0]
+    #xno[3] = xno[3] + 4.5 # Initial z position of NO = 10
+    xno[3] = xno[3] + 0.5
     #theta_no = rand() # Initial orientation of NO, 0 = O-down, PI = N-down
-    theta_no = 0.1#rand() # Initial orientation of NO, 0 = O-down, PI = N-down
+    theta_no = 0.5#rand() # Initial orientation of NO, 0 = O-down, PI = N-down
     theta_no = asin(2.0 * theta_no - 1.0) + π/2.0
     #phi_no = rand()
-    phi_no = 0.1#rand()
+    phi_no = 0.5#rand()
     phi_no = 2.0*π*phi_no
 
 
 
     x0no[1, :] = xno .+ r_no/2.0 * [sin(phi_no)*sin(theta_no), cos(phi_no)*sin(theta_no), cos(theta_no)]
     x0no[2, :] = xno .- r_no/2.0 * [sin(phi_no)*sin(theta_no), cos(phi_no)*sin(theta_no), cos(theta_no)]
-    x0no[1, 3] = x0no[1, 3] +1.0*Å
-    x0no[2, 2] = x0no[2, 2] + 0.5*Å
+    x0no[1, 3] = x0no[1, 3] +0.5
+    x0no[2, 2] = x0no[2, 2] + 0.5
     xno = x0no[1,:] - x0no[2, :]
     xno = xno / norm(xno)
 
     #initial velocity of no
     v0no = zeros(Float64, 2, 3)
     phi_no = 0.5
+    phi_no = 2.0*π*phi_no
     v0no[1, :] = vz_no * [sin(phi_no)*sin(phi_inc), -cos(phi_no)*sin(phi_inc), -cos(phi_inc)]
     v0no[2, :] = v0no[1, :]
     v0no[1, :] = v0no[1, :] + vvib_no * xno * mass_arr[2] / (mass_arr[1] + mass_arr[2])
@@ -103,7 +104,7 @@ function simulation_constructor_x_v!(s::Simulation)
 
     #add rotational velocity
     #theta_no = rand()
-    theta_no = 0.1#rand()
+    theta_no = 0.5#rand()
     theta_no = asin(2.0 * theta_no - 1.0) + π/2.0
     vrot_no = @. [-xno[3], 0.0, xno[1]] * cos(theta_no)/sqrt(xno[1]^2 + xno[3]^2)
     vrot_no = @. vrot_no + [xno[1], -(xno[1]^2 + xno[3]^2)/xno[2], xno[3]] *
@@ -113,11 +114,11 @@ function simulation_constructor_x_v!(s::Simulation)
     v0no[1, :] = @. v0no[1, :] + vvib_no * vrot_no * sqrt(mass_arr[2]/mass_arr[1])
     v0no[2, :] = @. v0no[2, :] - vvib_no * vrot_no * sqrt(mass_arr[1]/mass_arr[2])
     #stack information to x_au0 and v_au0
-    v0 = [v0no; v_au0 .* 0]
+    v0 = [v0no*30; v_au0]
     x0 = [x0no; x_au0]
     s.x .= x0
     s.v .= v0
-    #s.v[1:2,:] .= s.v[1:2, :] .+ 13000.0
+    s.v[1:2,:] .= s.v[1:2, :]
     s.Δ_no .= x0[1, :] - x0[2, :]
 end
 
@@ -132,4 +133,8 @@ end
 
 function simulation_constructor_force(s::Simulation)
     get_F_all(s)
+end
+
+function simulation_constructor_x_300K!(s::Simulation)
+    s.x[3:end, :] .= x_300K0
 end
