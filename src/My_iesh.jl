@@ -9,6 +9,7 @@ using Plots
 using HDF5
 using Statistics
 using Dates
+using Base.Threads
 
 include("read_au_data.jl");
 include("setup_parameters.jl");

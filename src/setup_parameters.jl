@@ -31,22 +31,25 @@ const global twrite = 5     #number of timesteps between data writing
 const global dt = 0.1  #time stepsize in Femtoseconds
 #these energy parameters are used in subsequent calculations with other variables defined
 # in the simulation units Angstrom, amu, femtoseconds. Therefore we need to convert
-# kilojoule/mole to amu*angstrom^2/femtosecond^2
-const global r_no = 1.15077		# Initial bond length of NO
+# ev to kilojoule/mole to Dalton*angstrom^2/femtosecond^2
+
 const global e_trans_i = 0.05 * ev_kjmol * kjmol_seunit #translational energy in eV -> kilojoule/mole
 const global e_vib_i = 3.1  * ev_kjmol * kjmol_seunit #vibrational energy in eV-> kilojoule/mole
 const global e_rot_i = 0.00  * ev_kjmol * kjmol_seunit #translational energy in eV-> kilojoule/mole
+
+const global r_no = 1.15077		# Initial bond length of NO
 const global phi_inc = 0.0 #incident angle in radians
 const global tsurf = 300.0 #temperature of surface in Kelvin
 const global sim_time = tsteps * dt
 
-#
-
+#random seed used for simulation
 Random.seed!(1234);
 
 #parameters of surface etc.
 const global delta_E = 7.0 * ev_kjmol * kjmol_seunit
 const global sqrt_de = sqrt(delta_E)
+
+#end simulation when scattered projectile reaches z_end
 const global z_end = 11.0
 
 
@@ -65,7 +68,6 @@ global const δ_n=2.743 #N--O: Morse: delta
 global const r_0_NO = 1.1507700000#N--O: Morse: cutoff
 
 #Parameters of IONIC Diabatic Matrix Element
-
 global const C_i = 1.25581276843  # Image potential: C
 global const D_i = 347.2225355*kjmol_seunit  #Image potential: D
 global const z0_i = 1.153606314 #Image potential: z0
@@ -99,15 +101,16 @@ global const coup_cutoff_N = coup_a_N/(1+coup_b_N*exp(coup_β_N * Au_O_coupling_
 #function to convert arrays to static/mutable staticarrays
 array_to_ma(x, N, c, L) = MMatrix{N, c, Float64, L}(x)
 array_to_sa(x, N, c, L) = SMatrix{N, c, Float64, L}(x)
-# in Newton/meters, multiply with conv1 so that resulting units of energy will
-# be in kilojoule per mole
+# in Newton/meters ~ kilogram/second^2, multiply with nm_to_daang to convert to Dalton/femtosecond^2
 global const α = -4.94*nm_to_daang
 global const β = 17.15*nm_to_daang
 global const γ = 19.40*nm_to_daang
 
+#change of basis matrix u which transforms 100 basis to 111 basis
 u = permutedims([[-1.0 0.0 1.0]/sqrt(2.0);[1.0 -2.0 1.0]/sqrt(6.0);[-1.0 -1.0 -1.0]/sqrt(3.0)])
 global const U_sa = array_to_sa(u, 3, 3, 9)
 
+#dynamical matrices in 100 basis
 function def_d_matrices(α, β, γ)
     #see paper from 1947 for definitions
     d17 = [[α 0.0 0.0]; [0.0 β γ]; [0.0 γ β]]
@@ -126,6 +129,7 @@ function def_d_matrices(α, β, γ)
 end
 global const d17, d28, d39, d410, d511, d612 = def_d_matrices(α, β, γ)
 
+#dynamical basis in 111 basis
 function compute_d_new_basis(d17, d28, d39, d410, d511, d612)
     d1_new = U_sa' * d17 * U_sa
     d2_new = U_sa' * (d28* U_sa)
@@ -144,10 +148,14 @@ const global m_O = mass_arr[2]
 const global m_au = mass_arr[3]
 const global μ = m_N*m_O/(m_N + m_O)
 
+
+#create mass vector m_spread
 m_spread_1 =repeat(mass_arr, inner=[1, 3])
 m_spread_2 = repeat([m_au], inner=[1, 3], outer=[527, 1])
 const global m_spread = vcat(m_spread_1, m_spread_2)
 const global inv_m_spread = 1.0 ./ m_spread
+
+#get equilibrium position in unit cell for gold, see paper from 1947.
 function get_r0()
     r0_old_basis = 0.5*a*collect([0,1,1,0,1,-1,1,0,1,-1,0,1 ,1,1,0 ,1,-1,0,0,-1,
     -1,0,-1,1,-1,0,-1,1, 0,-1,-1,-1,0,-1,1,0])
@@ -159,6 +167,7 @@ end
 
 global const r0 = array_to_sa(get_r0(), 3, 12, 3*12)
 
+#Burkey Cantrell continuum discretization
 function burkey_cantrell()
     e_diabat = zeros(Float64, Ms)
     h0 = zeros(Float64, Ms+1, Ms+1)
@@ -192,6 +201,6 @@ global const h0 = h0_temp
 global const e_diabat = SVector{Ms, Float64}(e_diabat_temp)
 global const vm = vm_temp
 
-
+#auxilliary logical functions
 leaq(a,b) = (a <= b) || (a ≈ b)
 geaq(a, b) = (a >= b) || (a ≈ b)

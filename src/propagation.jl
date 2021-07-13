@@ -1,7 +1,20 @@
 export simulate!
 export propagate_init!
 
-#---------------constructor first time step-------------------------------------
+@doc """
+    propagate_init!(s)
+
+Part of the constructor.
+Initializes:    wavefunction s.ψ,
+                eigenvalues s.λ,
+                eigenvectors s.Γ,
+                s.surfp,
+                s.surfh,
+                s.surfpinit,
+                s.occnum,
+                coupling matrices s.dhdv and s.dhdea
+                storage_arrays...
+"""
 function propagate_init!(s::Simulation) #check seems okay #everything good.
     compute_eigen_H!(s)
     H_derivatives!(s)
@@ -135,6 +148,8 @@ function simulate!(s::Simulation)
         #traj_prog = round(min_z_no/Å; digits=3)
         #str_trajzmin_prog = string(traj_prog)
         #println(str_t_prog*", "*str_trajzmin_prog)
+
+
         # get state corresponding to current surface
         @inbounds for j in 1:Ne
             s.ϕ[:, j] = view(s.Γ, :, s.surfp[j])
@@ -183,7 +198,9 @@ function simulate!(s::Simulation)
         s.v[399:530, :] .= 0
         s.F .= -s.F
 
+        #propagate velocities
         s.v .= s.vtemp .+ 0.5 ./m_spread .* s.F * dt
+
         if logopt == 1
             s.storage_xno[1:3, n] = view(s.x, 1, :)
             s.storage_xno[4:6, n] = view(s.x, 2, :)

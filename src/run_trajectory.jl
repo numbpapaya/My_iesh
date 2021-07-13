@@ -1,6 +1,9 @@
 export multiple_trajectories
-using Base.Threads
 
+@doc """
+this function can be used to print in a threaded loop
+see https://discourse.julialang.org/t/print-functions-in-a-threaded-loop/12112
+"""
 const print_lock = SpinLock()
 const prints_pending = Vector{String}()
 function tprintln(str)
@@ -15,12 +18,11 @@ function tprintln(str)
 	end
 end
 
-
-# function one_trajectory()::Simulation
-#
-#     return s
-# end
-
+@doc """
+creates parent folder which is encoded with version and time info.
+It then runs a parallel loop over the trajectories.
+The results of each loop are logged and saved in a hdf5 file.
+"""
 function multiple_trajectory()
     #filepath_parent = "W:\\ALL\\Theory Group\\iesh\\data\\"
     filepath_parent = "/mnt/MBPC11500/braza2/data_iesh/"
@@ -33,7 +35,7 @@ function multiple_trajectory()
     Threads.@threads for traj in 1:numtraj
         tprintln(traj)
 
-		#run simulation
+		#construct simulation
 		s = simulation_init()
 		simulation_constructor_x_v!(s)
 		simulation_constructor_nn!(s)
@@ -41,6 +43,7 @@ function multiple_trajectory()
 		simulation_constructor_energy(s)
 		simulation_constructor_force(s)
 		propagate_init!(s)
+		#run simulation
 		simulate!(s)
 
 		#logging
