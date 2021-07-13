@@ -66,5 +66,4 @@ end
 
 
 #standard type for arrays:
-
 const float_array = Array{Float64, 2}
