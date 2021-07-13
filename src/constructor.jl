@@ -65,60 +65,59 @@ end
 
 
 function simulation_constructor_x_v!(s::Simulation)
-
-    vvib_no = sqrt(e_vib_i*2.0/(mass_arr[1]*mass_arr[2]/(mass_arr[1] + mass_arr[2])))		# Initial vibrational velocity of NO
-    vz_no = sqrt(e_trans_i*2.0/(mass_arr[1] + mass_arr[2]))				# Initial z velocity of NO
+    vvib_no = sqrt(e_vib_i*2.0/(mass_arr[1]*mass_arr[2]/(mass_arr[1] + mass_arr[2])))# Initial vibrational velocity of NO
+    vz_no = sqrt(e_trans_i*2.0/(mass_arr[1] + mass_arr[2]))# Initial z velocity of NO
 
     #initial position of NO
     x0no = zeros(Float64, 2, 3)
 
-    #xno = rand() #temporary variable
-    xno = 0.5#rand() #temporary variable
-    xno = @. xno * [cell[1], cell[2], 1.0]
-    #xno[3] = xno[3] + 4.5 # Initial z position of NO = 10
-    xno[3] = xno[3] + 0.5
-    #theta_no = rand() # Initial orientation of NO, 0 = O-down, PI = N-down
-    theta_no = 0.5#rand() # Initial orientation of NO, 0 = O-down, PI = N-down
-    theta_no = asin(2.0 * theta_no - 1.0) + π/2.0
-    #phi_no = rand()
-    phi_no = 0.5#rand()
+    xno_rand = 0.5 #random number between (0, 1)
+    xno = @. xno_rand * [cell[1], cell[2], 0.0]
+    xno[3] = 1.5 #Initial z position of NO = 10
+
+    #Construct N and O position vector in simulation basis by transforming
+    #from NO basis using angles theta and phi which are samples such that the
+    #simulation basis unit vectors of NO fill out uniformly the 1-sphere
+    #citation: http://corysimon.github.io/articles/uniformdistn-on-sphere/
+
+    theta_no = 0.5 # Initial orientation of NO, 0 = O-down, PI = N-down
+    theta_no = acos(1.0 - 2.0 * theta_no)
+    phi_no = 0.50
     phi_no = 2.0*π*phi_no
 
-
-
-    x0no[1, :] = xno .+ r_no/2.0 * [sin(phi_no)*sin(theta_no), cos(phi_no)*sin(theta_no), cos(theta_no)]
-    x0no[2, :] = xno .- r_no/2.0 * [sin(phi_no)*sin(theta_no), cos(phi_no)*sin(theta_no), cos(theta_no)]
-    x0no[1, 3] = x0no[1, 3] +0.5
-    x0no[2, 2] = x0no[2, 2] + 0.5
-    xno = x0no[1,:] - x0no[2, :]
+    x0no[1, :] = xno .+ r_no/2.0 * [sin(phi_no)*sin(theta_no), -cos(phi_no)*sin(theta_no), cos(theta_no)]
+    x0no[2, :] = xno .- r_no/2.0 * [sin(phi_no)*sin(theta_no), -cos(phi_no)*sin(theta_no), cos(theta_no)]
+    x0no[1, 3] = x0no[1, 3] + 0.2
+    x0no[2, 2] = x0no[2, 2]  + 0.2
+    xno = x0no[1,:] - x0no[2, :] #unit vector pointing from O to N
     xno = xno / norm(xno)
 
     #initial velocity of no
-    v0no = zeros(Float64, 2, 3)
-    phi_no = 0.5
-    phi_no = 2.0*π*phi_no
+    v0no = zeros(Float64, 2, 3) #construct container for initial velocity of N and O
+    phi_no = 0.0 #direction of incidence, i.e. North, south east or west
     v0no[1, :] = vz_no * [sin(phi_no)*sin(phi_inc), -cos(phi_no)*sin(phi_inc), -cos(phi_inc)]
     v0no[2, :] = v0no[1, :]
     v0no[1, :] = v0no[1, :] + vvib_no * xno * mass_arr[2] / (mass_arr[1] + mass_arr[2])
     v0no[2, :] = v0no[2, :] - vvib_no * xno * mass_arr[1] / (mass_arr[1] + mass_arr[2])
 
     #add rotational velocity
-    #theta_no = rand()
-    theta_no = 0.5#rand()
-    theta_no = asin(2.0 * theta_no - 1.0) + π/2.0
-    vrot_no = @. [-xno[3], 0.0, xno[1]] * cos(theta_no)/sqrt(xno[1]^2 + xno[3]^2)
-    vrot_no = @. vrot_no + [xno[1], -(xno[1]^2 + xno[3]^2)/xno[2], xno[3]] *
-                sin(theta_no)/sqrt((xno[1]^2 + xno[3]^2) * (1 + (xno[1]^2 + xno[3]^2)/xno[2]^2))
+    if e_rot_i != 0.0
+        theta_no = 0.50
+        theta_no = asin(2.0 * theta_no - 1.0) + π/2.0
+        vrot_no = @. [-xno[3], 0.0, xno[1]] * cos(theta_no)/sqrt(xno[1]^2 + xno[3]^2)
+        vrot_no = @. vrot_no + [xno[1], -(xno[1]^2 + xno[3]^2)/xno[2], xno[3]] *
+                    sin(theta_no)/sqrt((xno[1]^2 + xno[3]^2) * (1 + (xno[1]^2 + xno[3]^2)/xno[2]^2))
 
-    vvib_no = sqrt(2.0 * e_rot_i/(mass_arr[1] + mass_arr[2]))
-    v0no[1, :] = @. v0no[1, :] + vvib_no * vrot_no * sqrt(mass_arr[2]/mass_arr[1])
-    v0no[2, :] = @. v0no[2, :] - vvib_no * vrot_no * sqrt(mass_arr[1]/mass_arr[2])
-    #stack information to x_au0 and v_au0
-    v0 = [v0no*30; v_au0]
+        vvib_no = sqrt(2.0 * e_rot_i/(mass_arr[1] + mass_arr[2]))
+        v0no[1, :] = @. v0no[1, :] + vvib_no * vrot_no * sqrt(mass_arr[2]/mass_arr[1])
+        v0no[2, :] = @. v0no[2, :] - vvib_no * vrot_no * sqrt(mass_arr[1]/mass_arr[2])
+    end
+    #stack x0no and v0no to x_au0 and v_au0 to create x and v
+    v0 = [-30.0*v0no; v_au0]
     x0 = [x0no; x_au0]
     s.x .= x0
     s.v .= v0
-    s.v[1:2,:] .= s.v[1:2, :]
+    #construct difference vector between N and O for timestep t=0
     s.Δ_no .= x0[1, :] - x0[2, :]
 end
 
