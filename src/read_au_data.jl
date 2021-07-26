@@ -3,8 +3,8 @@
 #read velocity file
 #filename = "C:\\Users\\Belal\\.julia\\dev\\My_iesh.jl\\data\\surface_Au111.dat"
 #filename = "/home/razamaza/dev/My_iesh.jl/data/surface_Au111.dat"
-#filename = "C:\\Users\\braza2\\Documents\\GitHub\\My_iesh.jl\\data\\surface_Au111.dat"
-filename = "/home/braza2/My_iesh.jl/data/surface_Au111.dat"
+filename = "C:\\Users\\braza2\\Documents\\GitHub\\My_iesh.jl\\data\\surface_Au111.dat"
+#filename = "/home/braza2/My_iesh.jl/data/surface_Au111.dat"
 
 f = open(filename)
 data = readlines(f)
@@ -35,8 +35,8 @@ const global x_au0 = copy(x_au_temp) #position vectors of grid atoms
 
 
 #get velocities for thermalized surface
-#filename ="C:\\Users\\braza2\\Documents\\GitHub\\My_iesh.jl\\data\\Latticev300.dat"
-filename = "/home/braza2/My_iesh.jl/data/Latticev300.dat"
+filename ="C:\\Users\\braza2\\Documents\\GitHub\\My_iesh.jl\\data\\Latticev300.dat"
+#filename = "/home/braza2/My_iesh.jl/data/Latticev300.dat"
 f = open(filename)
 data = readlines(f)
 close(f)
@@ -55,8 +55,8 @@ const global v_au0 = copy(v_au_temp)
 
 
 #get position vectors of thermalized surface
-#filename ="C:\\Users\\braza2\\Documents\\GitHub\\My_iesh.jl\\data\\Latticex300.dat"
-filename = "/home/braza2/My_iesh.jl/data/Latticex300.dat"
+filename ="C:\\Users\\braza2\\Documents\\GitHub\\My_iesh.jl\\data\\Latticex300.dat"
+#filename = "/home/braza2/My_iesh.jl/data/Latticex300.dat"
 f = open(filename)
 data = readlines(f)
 close(f)

@@ -10,7 +10,7 @@ global const logopt = 1
 #constants in SI units
 global const amunit = 1.66053886e-27    #1 amu in kg
 global const ev = 1.60217646e-19 # 1 eV in Joule
-global const N_a = 602214076000000000000000.0 #avogadro constant
+global const N_a = 6.02214076e23 #avogadro constant
 
 #conversions
 global const ev_kjmol = N_a * ev *1.0e-3 #ev to kj/mol
@@ -106,13 +106,23 @@ global const α = -4.94*nm_to_daang
 global const β = 17.15*nm_to_daang
 global const γ = 19.40*nm_to_daang
 
-#change of basis matrix u which transforms 100 basis to 111 basis
+"""u defines a transformation matrix that rotates the 111 basis vectors
+([1 0 -1]/sqrt(2)],[1 -4 1]/sqrt(6),[1 1 1]/sqrt(3)) to the cartesian coordinate system
+([1 0 0],[0 1 0],[0 0 1]), i.e. rotation by 45 degree around z axis and arccos(1/sqrt(3))
+around x axis. """
 u = permutedims([[-1.0 0.0 1.0]/sqrt(2.0);[1.0 -2.0 1.0]/sqrt(6.0);[-1.0 -1.0 -1.0]/sqrt(3.0)])
 global const U_sa = array_to_sa(u, 3, 3, 9)
 
-#dynamical matrices in 100 basis
+@doc """
+    d17, d28, d39, d410, d511, d612 = def_d_matrices(α, β, γ)
+dynamical matrices (force response to displacements of other atoms away from equilibrium) in cartesian basis.
+The indices 17, 28, 612 refer to the 12 direct neighbors in a fcc unit cell. We define
+the indices such that 1 and 7, 2 and 8 etc. have a identical dynamical matrix. For
+detailed information we refer to "Thermal scattering of X-rays by crystals II.
+The thermal scattering of the face-centred cubic and the close-packed hexagonal lattices
+G. H. Begbie, https://doi.org/10.1098/rspa.1947.0004".
+"""
 function def_d_matrices(α, β, γ)
-    #see paper from 1947 for definitions
     d17 = [[α 0.0 0.0]; [0.0 β γ]; [0.0 γ β]]
     d28 = [[α 0.0 0.0]; [0.0 β -γ]; [0.0 -γ β]]
     d39 = [[β 0.0 γ]; [0.0 α 0.0]; [γ 0.0 β]]
@@ -129,7 +139,11 @@ function def_d_matrices(α, β, γ)
 end
 global const d17, d28, d39, d410, d511, d612 = def_d_matrices(α, β, γ)
 
-#dynamical basis in 111 basis
+@doc """
+d1_new, d2_new, d3_new, d4_new, d5_new, d6_new = compute_d_new_basis(d17, d28, d39, d410, d511, d612)
+
+Change of basis to 111 basis.
+"""
 function compute_d_new_basis(d17, d28, d39, d410, d511, d612)
     d1_new = U_sa' * d17 * U_sa
     d2_new = U_sa' * (d28* U_sa)
@@ -149,13 +163,13 @@ const global m_au = mass_arr[3]
 const global μ = m_N*m_O/(m_N + m_O)
 
 
-#create mass vector m_spread
+#create mass vector m_spread and inverse mass vector inv_m_spread
 m_spread_1 =repeat(mass_arr, inner=[1, 3])
 m_spread_2 = repeat([m_au], inner=[1, 3], outer=[527, 1])
 const global m_spread = vcat(m_spread_1, m_spread_2)
 const global inv_m_spread = 1.0 ./ m_spread
 
-#get equilibrium position in unit cell for gold, see paper from 1947.
+#get equilibrium position in unit cell for gold, see "Begbie 1947 https://doi.org/10.1098/rspa.1947.0004"
 function get_r0()
     r0_old_basis = 0.5*a*collect([0,1,1,0,1,-1,1,0,1,-1,0,1 ,1,1,0 ,1,-1,0,0,-1,
     -1,0,-1,1,-1,0,-1,1, 0,-1,-1,-1,0,-1,1,0])
@@ -167,14 +181,21 @@ end
 
 global const r0 = array_to_sa(get_r0(), 3, 12, 3*12)
 
-#Burkey Cantrell continuum discretization
+@doc """
+h0_temp, e_diabat_temp, vm_temp = burkey_cantrell()
+
+Computes Continuum discretization via Burkey-Cantrell method, see
+Burkey, Ronald S. / Cantrell, C. D.
+Discretization in the quasi-continuum
+1984-04
+"""
 function burkey_cantrell()
-    e_diabat = zeros(Float64, Ms)
-    h0 = zeros(Float64, Ms+1, Ms+1)
-    vm = zeros(Float64, Ms+1, Ms+1)
-    gauss = zeros(Float64, Int(Ms/2), Int(Ms/2))
+    e_diabat = zeros(Float64, Ms) #Diabat energies
+    h0 = zeros(Float64, Ms+1, Ms+1) #component of diabatic hamiltonian matrix
+    vm = zeros(Float64, Ms+1, Ms+1)#component of diabatic hamiltonian matrix
+    gauss = zeros(Float64, Int(Ms/2), Int(Ms/2)) #recursion matrix to obtain continuum states
     for j in 1:(Int(Ms/2)-1)
-        gauss[j, j+1] = Float64(j)/sqrt((2.0*Float64(j) + 1.0)*(2.0*Float64(j) - 1.0))
+        gauss[j, j+1] = Float64(j)/sqrt((2.0*Float64(j) + 1.0)*(2.0*Float64(j) - 1.0))   #equation not trivially reproducable
         gauss[j+1, j] = gauss[j, j+1]
     end
 
@@ -182,13 +203,13 @@ function burkey_cantrell()
     eigvecs_gauss = eigvecs(gauss)
 
     for j in 2:(Int(Ms/2) + 1)
-        h0[j, j] = delta_E/4.0*eigvals_gauss[j-1] - delta_E/4.0
-        h0[j+Int(Ms/2), j+Int(Ms/2)] = delta_E/4.0*eigvals_gauss[j-1] + delta_E/4.0
+        h0[j, j] = delta_E/4.0*eigvals_gauss[j-1] - delta_E/4.0     #???
+         h0[j+Int(Ms/2), j+Int(Ms/2)] = delta_E/4.0*eigvals_gauss[j-1] + delta_E/4.0
         e_diabat[j-1] = h0[j, j]
         e_diabat[j + Int(Ms/2) - 1] = h0[j+Int(Ms/2), j+Int(Ms/2)]
     end
 
-    vm[1, 2:Int(Ms/2) + 1] = @. sqrt(delta_E/4.0 * (2.0*eigvecs_gauss[1, :]^2))
+    vm[1, 2:Int(Ms/2) + 1] = @. sqrt(delta_E/4.0 * (2.0*eigvecs_gauss[1, :]^2))  #??? why sqrt? where is weight function?
     vm[2:Int(Ms/2) + 1, 1] = @. sqrt(delta_E/4.0 * (2.0*eigvecs_gauss[1, :]^2))
     vm[1, (2 + Int(Ms/2)):(Ms + 1)] = @. sqrt(delta_E/4.0 * (2.0*eigvecs_gauss[1, :]^2))
     vm[(2 + Int(Ms/2)):(Ms + 1), 1] = @. sqrt(delta_E/4.0 * (2.0*eigvecs_gauss[1, :]^2))

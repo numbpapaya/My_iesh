@@ -4,7 +4,7 @@ export propagate_init!
 @doc """
     propagate_init!(s)
 
-Part of the constructor.
+Part of the initialization.
 Initializes:    wavefunction s.ψ,
                 eigenvalues s.λ,
                 eigenvectors s.Γ,
@@ -68,7 +68,6 @@ end
     s.H[1, 1] = s.H[1, 1] + s.hp[2] - s.hp[1]
     s.λ .= eigvals(s.H)
     s.Γ .= eigvecs(s.H)#check seems okay
-
 end
 
 
@@ -76,7 +75,7 @@ end
     for i in 1:Ms+1
         s.dhdea[:, i] .= view(s.Γ, 1, :) .* s.Γ[1, i]
     end
-    mul!(s.temp_vm_gamma, vm, s.Γ)  #needs preallocation
+    mul!(s.temp_vm_gamma, vm, s.Γ)
     mul!(s.dhdv, transpose(s.Γ), s.temp_vm_gamma)
     s.dhdv .= s.dhdv ./ sqrt_de
 end
@@ -102,8 +101,8 @@ end
 
     for t in 1:Ne
         for k in 1:Ne*(Ms + 1 - Ne)
-            hoprand = rand(Float64, 3)
-            #hoprand = collect([0.2, 0.4, 0.6])
+            #hoprand = rand(Float64, 3)
+            hoprand = collect([0.2, 0.4, 0.01])
             jp = Int(floor(hoprand[1]*Ne)) + 1
             jh = Int(floor(hoprand[2] * (Ms + 1 - Ne))) + 1
             rtemp = exp(-(s.λ[s.surfh[jh]] - s.dhp_neutral[s.surfp[jp]])) / (kb * tsurf)
@@ -124,8 +123,6 @@ end
     for j in 1:Ne
         s.F .= s.F .+ (s.dhdea[s.surfp[j], s.surfp[j]] .* (s.dhp_ion .- s.dhp_neutral) .+
         s.dhdv[s.surfp[j], s.surfp[j]] .* s.dhp_coup)
-
-        # @views s.F .= s.F .+ s.dhdv[s.surfp[j], s.surfp[j]] .* s.dhp_coup
     end
     s.F .= s.F .+ s.dhp_neutral
 end
@@ -283,7 +280,7 @@ end
         end
     end
 
-    s.Pbmaxest[1] = sqrt(sum(s.blk2.^2)) * sqrt(1.0 - rtemp)/s.akk[1] * dt * Float64(thop) #should be ok
+    s.Pbmaxest[1] = sqrt(sum(s.blk2.^2)) * sqrt(1.0 - rtemp)/s.akk[1] * dt * Float64(thop) #equation not found in any papers, but cool approach.
 end
 
 
@@ -304,7 +301,7 @@ function hopping!_pbmaxest!(s::Simulation, hoprand::Float64, n::Int64)
     end
 end
 
-@inline function get_blk_akl!(s::Simulation) #seems ok
+@inline function get_blk_akl!(s::Simulation) #seems ok, but numerically unstable, cancellation of random phase needs to be proven
     for jp in 1:Ne
         for jh in 1:Ms+1-Ne
             s.surfpnew .= s.surfp
@@ -322,7 +319,7 @@ end
     end
 end
 
-@inline function get_pb!(s::Simulation) #seems ok
+@inline function get_pb!(s::Simulation) #seems ok, but probabilities can be greater than one.
     rtemp = 0.0
     for jh in 1:Ms+1-Ne
         for jp in 1:Ne
@@ -331,14 +328,14 @@ end
             rtemp = s.Pb[(jh - 1) * Ne + jp]
         end
     end
-    s.Pb .= s.Pb ./ s.akk[1] * dt * Float64(thop)
+    s.Pb .= s.Pb ./ s.akk[1] * dt
 end
 #-----------------start hopping! hoprand < pbmaxest && hoprand < Pbmax ---------
 function hopping!_pbmaxest!_attempt!(s::Simulation, hoprand::Float64, n::Int64)
     hopstate = which_state(s, hoprand) #ok
     jh= which_orbital_jh(hopstate) #ok
     jp= which_orbital_jp(hopstate) #ok
-    rhop = which_direction(s, jp, jh) #needs durther testing, not sure about rescaling
+    rhop = which_direction(s, jp, jh) #ok
     e_el_old, e_el_new, k_rhop, k_temp = check_energy1(s, jp, jh, rhop)
     bool_e = check_energy2(e_el_old, e_el_new, k_rhop, k_temp)
     s.attnum .= s.attnum .+ one(Int64)
@@ -365,7 +362,7 @@ end
     return jp
 end
 
-@inline function which_direction(s::Simulation, jp::Int64, jh::Int64)::float_array #needs checking
+@inline function which_direction(s::Simulation, jp::Int64, jh::Int64)::float_array #not sure what happenes here, literature unclear
     @views temp = s.dhdea[s.surfp[jp], s.surfh[jh]] .* (s.dhp_ion .- s.dhp_neutral)
     @views temp .= temp .+ s.dhdv[s.surfp[jp], s.surfh[jh]] .* s.dhp_coup
     temp2 = sqrt(sum(temp.^2)/sum(s.v .^2))
@@ -470,12 +467,12 @@ function get_dhdea_dhdv_loop!(s::Simulation)
     @inbounds for j in 1:Ms+1
         s.dhdea[:, j] = view(s.Γ, 1, :) .* s.Γ[1, j]
     end
-    mul!(s.temp_vm_gamma, vm , s.Γ) #ARRAY ALLOCATION !!!! solve later
+    mul!(s.temp_vm_gamma, vm , s.Γ)
     mul!(s.dhdv, transpose(s.Γ), s.temp_vm_gamma)
     s.dhdv .= s.dhdv ./sqrt_de
 end
 
 function get_temperature!(s::Simulation, n::Int)
     speed = [norm(s.v[i, :]) for i in 3:398]
-    s.storage_temp[n] = 2*m_au*sum(speed.^2)/(3*(N*0.75-3)*kb)
+    s.storage_temp[n] = 2*m_au*sum(speed.^2)/(3*(N*0.75-3)*kb) #is this correct?
 end

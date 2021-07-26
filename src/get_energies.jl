@@ -1,7 +1,6 @@
 
 #ENERGIES
 @inline function get_E_all(s::Simulation)::MVector{3, Float64}
-    #Units are STILL not clear
     E_au_au = get_V_au_au(s)
     E_coup = get_E_coup(s)
     E_neutral = get_E_neutral(s) + E_au_au
@@ -264,6 +263,7 @@ end
 #---------------------------GOLD AU AU LATTICE----------------------------------
 @inline function V_au_au_loop_if(x::float_array, V::Float64, i::Int, j::Int,
      xm, xi, temp,r, qf_1, qf_2, s::Simulation)::Float64
+
     if s.nn_arr[i, j] != 0
         m = s.nn_arr[i, j] + 2
         @views xm .= x[m, :]
@@ -318,5 +318,5 @@ end
 @inline function get_V_au_au(s::Simulation)::Float64    #check
     V = 0.0
     V = V_au_au_loop(s.x, V, s)
-    return V/4.0
+    return V*0.25 #why is here a factor of 1/4 instead of 1/2?
 end
