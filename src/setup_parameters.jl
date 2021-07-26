@@ -1,10 +1,9 @@
 #iesh or electronic friction, set 0 for iesh and 1 for electronic friction
 global const latticeopt = 0
 #logging options:
-#   0 -> no logging
+#   0 -> "normal" logging
 #   1 -> logging of various parameters but no logging of velocity and position vectors of bulk atoms
-#   2 -> 2 + logging of bulk atoms
-global const logopt = 1
+global const extensive_logging = 0
 #conversion factors to simulation units.
 
 #constants in SI units

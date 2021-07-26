@@ -7,6 +7,7 @@ function simulation_init()
     A = Ne
     C = Ms+1
     D = Ms-Ne+1
+    if extensive_logging == true
     return Simulation{A, C, D}(
     zeros(Float64, N+2, 3), #x
     zeros(Float64, N+2, 3), #v
@@ -37,6 +38,21 @@ function simulation_init()
     zeros(Float64, Ne, Ms+1-Ne), #blk
     zeros(Float64, Ne, Ms+1-Ne), #blk2
     zeros(Float64, Ne*(Ms+1-Ne)), #Pb
+    MVector{1, ComplexF64}(zero(ComplexF64)), #"phipsi"
+    MVector{1, Float64}(0.0), #"Pbmaxest"
+    zeros(Float64, N+2, 3),#vdot
+    zeros(Float64, N+2, 3),#vtemp
+    MVector{1, Float64}(0.0), #vscale
+    MVector{1, Int64}(0), #exnum
+    MVector{1, Int64}(0), #attnum
+    MVector{1, Int64}(0), #nf
+    zeros(ComplexF64, Ne, Ne), #temp_akl
+    MVector{C, ComplexF64}(zeros(ComplexF64, C)), #uu
+    zeros(Float64, Ms+1, Ne), #uuu
+    zeros(Float64, Ms+1, Ms+1),   #temp_vm_gamma
+    zeros(Float64, Ms+1, Ms+1), #Γ_hold
+    MVector{C, Float64}(zeros(Float64, C)),#temp_prop_gamma
+    zeros(ComplexF64, Ne, Ne), #temp_phi_psi
     zeros(Float64, tsteps), #storage_aop
     zeros(Float64, Ms+1, tsteps), #storage_op,
     zeros(Float64, 5, tsteps), #storage_e
@@ -44,32 +60,77 @@ function simulation_init()
     zeros(Float64, 6, tsteps), #storage_vno
     zeros(Float64, tsteps), #storage_temp
     zeros(Float64, tsteps), #storage_phop
+    zeros(Float64, tsteps), #storage kinetic energy
+    zeros(Float64, tsteps), #storage potential energy
+    zeros(Float64, Int(round(tsteps/2))), #storage_state
+    zeros(Float64, Int(round(tsteps/2))), #storage_deltaKNO
+    zeros(Float64, Int(round(tsteps/2))), #storage_deltaKAu
+    zeros(Int64, Int(round(tsteps/2))), #storage_hoptimes
+    zeros(ComplexF64, (Ms+1)*Ne, tsteps), #storage_psi
+    zeros(ComplexF64, (Ms+1)*Ne, tsteps), #storage_phi
+    zeros(Float64, 396*3, tsteps), #storage_xau
+    zeros(Float64, 396*3, tsteps)
+    ) #storage_vau
+elseif extensive_logging == false
+    return Simulation{A, C, D}(
+    zeros(Float64, N+2, 3), #x
+    zeros(Float64, N+2, 3), #v
+    MVector{3, Float64}(0.0, 0.0, 0.0),    #Δ_no
+    zeros(Int64, N, 12), #nn_arr
+    zeros(Float64, N+2, 3), #dhp_neutral
+    zeros(Float64, N+2, 3), #dhp_ion
+    zeros(Float64, N+2, 3), #dhp_coup
+    MVector{3, Float64}(0.0, 0.0, 0.0), #hp
+    zeros(Float64, N+2, 3), #F
+    MVector{A, Int16}(zeros(Int16, Ne)), #surfp
+    MVector{C, Int16}(zeros(Int16, Ms+1)), #occnum
+    MVector{D, Int16}(zeros(Int16, Ms-Ne+1)), #surfh
+    MVector{A, Int16}(zeros(Int16, Ne)), #surfpinit
+    MVector{A, Int16}(zeros(Int16, Ne)), #surfpnew
+    MVector{1, Float64}(10.0), # trajzmin
+    MVector{1, Float64}(0.0), #trajtheta
+    zeros(Float64, Ms+1, Ms+1), #H
+    zeros(ComplexF64, Ms+1, Ne), #psi
+    zeros(ComplexF64, Ms+1, Ne), #phi
+    zeros(Float64, Ms+1, Ms+1), #Γ
+    MVector{C, Float64}(zeros(Float64, Ms+1)), #λ
+    zeros(Float64, Ms+1, Ms+1), #dhdea
+    zeros(Float64, Ms+1, Ms+1), #dhdv
+    MVector{1, ComplexF64}(zero(ComplexF64)), #akl
+    MVector{1, Float64}(0.0), #akk
+    zeros(Float64, Ms+1,Ms+1), #DM
+    zeros(Float64, Ne, Ms+1-Ne), #blk
+    zeros(Float64, Ne, Ms+1-Ne), #blk2
+    zeros(Float64, Ne*(Ms+1-Ne)), #Pb
     MVector{1, ComplexF64}(zero(ComplexF64)), #"phipsi"
     MVector{1, Float64}(0.0), #"Pbmaxest"
     zeros(Float64, N+2, 3),#vdot
     zeros(Float64, N+2, 3),#vtemp
     MVector{1, Float64}(0.0), #vscale
-    zeros(Float64, tsteps), #KEt
-    zeros(Float64, tsteps), #PEt
-    zeros(Float64, Int(round(tsteps/2))),
-    zeros(Float64, Int(round(tsteps/2))),
-    zeros(Float64, Int(round(tsteps/2))),
-    zeros(Int64, Int(round(tsteps/2))),
-    MVector{1, Int64}(0),
-    MVector{1, Int64}(0),
-    MVector{1, Int64}(0),
-    zeros(ComplexF64, (Ms+1)*Ne, tsteps), #storage_psi
-    zeros(ComplexF64, (Ms+1)*Ne, tsteps), #storage_phi
-    zeros(Float64, 396*3, tsteps), #storage_xau
-    zeros(Float64, 396*3, tsteps), #storage_vau
+    MVector{1, Int64}(0), #exnum
+    MVector{1, Int64}(0), #attnum
+    MVector{1, Int64}(0), #nf
     zeros(ComplexF64, Ne, Ne), #temp_akl
     MVector{C, ComplexF64}(zeros(ComplexF64, C)), #uu
     zeros(Float64, Ms+1, Ne), #uuu
     zeros(Float64, Ms+1, Ms+1),   #temp_vm_gamma
     zeros(Float64, Ms+1, Ms+1), #Γ_hold
     MVector{C, Float64}(zeros(Float64, C)),#temp_prop_gamma
-    zeros(ComplexF64, Ne, Ne) #temp_phi_psi
-)
+    zeros(ComplexF64, Ne, Ne), #temp_phi_psi
+    zeros(Float64, tsteps), #storage_aop
+    zeros(Float64, Ms+1, tsteps), #storage_op,
+    zeros(Float64, 5, tsteps), #storage_e
+    zeros(Float64, 6, tsteps), #storage_xno
+    zeros(Float64, 6, tsteps), #storage_vno
+    zeros(Float64, tsteps), #storage_temp
+    zeros(Float64, tsteps), #storage_phop
+    zeros(Float64, tsteps), #storage kinetic energy
+    zeros(Float64, tsteps), #storage potential energy
+    zeros(Float64, Int(round(tsteps/2))), #storage_state
+    zeros(Float64, Int(round(tsteps/2))), #storage_deltaKNO
+    zeros(Float64, Int(round(tsteps/2))), #storage_deltaKAu
+    zeros(Int64, Int(round(tsteps/2))) #storage_hoptimes
+    )
 end
 
 @doc """

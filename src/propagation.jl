@@ -31,9 +31,9 @@ function propagate_init!(s::Simulation) #check seems okay #everything good.
 
     #convert to Forces
     s.F .= -s.F
-    if logopt == 1
-        storage_init!(s)
-    end
+
+    storage_init!(s)
+
 end
 
 
@@ -52,7 +52,7 @@ end
     @views T_tot = 0.5 * mass_arr[1] * sum(s.v[1, :].^2) + 0.5*mass_arr[2]*sum(s.v[2, :].^2)
     s.storage_e[3, 1] = T_tot - T_vib - s.storage_e[1, 1]
     s.storage_e[4, 1] = sum(s.λ[s.surfp]) - sum(s.λ[s.surfpinit])       #das hier macht keinen Sinn
-    if logopt == 1
+    if extensive_logging == 1
         s.storage_xno[1:3, 1] = view(s.x, 1, :)
         s.storage_xno[4:6, 1] = view(s.x, 2, :)
         s.storage_vno[1:3, 1] = view(s.v, 1, :)
@@ -177,9 +177,8 @@ function simulate!(s::Simulation)
 
         propagate_hamiltonian!(s)
         #storage
-        if logopt == 1
-            storage_sim1!(s, n)
-        end
+        storage_sim1!(s, n)
+
         #propagate nuclear motion
         propagate_nuclear!(s)
         #get adiabatic eigenvalues, eigenvectors
@@ -198,16 +197,18 @@ function simulate!(s::Simulation)
         #propagate velocities
         s.v .= s.vtemp .+ 0.5 ./m_spread .* s.F * dt
 
-        if logopt == 1
-            s.storage_xno[1:3, n] = view(s.x, 1, :)
-            s.storage_xno[4:6, n] = view(s.x, 2, :)
-            s.storage_vno[1:3, n] =view(s.x, 1, :)
-            s.storage_vno[4:6, n] = view(s.v, 2, :)#check seems okay
+
+        s.storage_xno[1:3, n] = view(s.x, 1, :)
+        s.storage_xno[4:6, n] = view(s.x, 2, :)
+        s.storage_vno[1:3, n] =view(s.x, 1, :)
+        s.storage_vno[4:6, n] = view(s.v, 2, :)#check seems okay
+        if extensive_logging == 1
             s.storage_psi[:, n] = vec(s.ψ)
             s.storage_xau[:, n] = vec(s.x[3:398, :])
             s.storage_vau[:, n] = vec(s.v[3:398, :])
             s.storage_phi[:, n] = vec(s.ϕ)
         end
+        
         s.nf .= s.nf .+ one(Int64)
     end
     s.storage_e[5, :] = sum(s.storage_e[1:4, :], dims=1) .- sum(s.storage_e[1:4, 1])
