@@ -24,9 +24,7 @@ It then runs a parallel loop over the trajectories.
 The results of each loop are logged and saved in a hdf5 file.
 """
 function multiple_trajectory()
-    #filepath_parent = "W:\\ALL\\Theory Group\\iesh\\data\\"
-    filepath_parent = "/mnt/MBPC11500/braza2/data_iesh/"
-    current_time = Dates.now()
+	current_time = Dates.now()
     str_time = string(Dates.format(current_time, "yyyy-dd-mm_HH-MM-SS"))
     #filepath_run = filepath_parent*curr_vers*"\\"*str_time *"\\"
     filepath_run = filepath_parent*curr_vers*"/"*str_time *"/"

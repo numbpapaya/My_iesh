@@ -1,5 +1,13 @@
-#iesh or electronic friction, set 0 for iesh and 1 for electronic friction
-global const latticeopt = 0
+#parent folder data
+#filepath_parent = "W:\\ALL\\Theory Group\\iesh\\data\\"
+filepath_parent = "/mnt/MBPC11500/braza2/data_iesh/"
+
+#file path for initialisation files:
+#filename = "C:\\Users\\Belal\\.julia\\dev\\My_iesh.jl\\data\\surface_Au111.dat"
+#filename = "/home/razamaza/dev/My_iesh.jl/data/surface_Au111.dat"
+#datapath = "C:\\Users\\braza2\\Documents\\GitHub\\My_iesh.jl\\data\\"
+datapath = "/home/braza2/My_iesh.jl/data/"
+
 #logging options:
 #   0 -> "normal" logging
 #   1 -> logging of various parameters but no logging of velocity and position vectors of bulk atoms
